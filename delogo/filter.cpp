@@ -160,7 +160,7 @@ unsigned int  logodata_n = 0;
 void *adjdata = NULL;	// 位置調節後ロゴデータ用バッファ
 unsigned int adjdata_size = 0;
 
-char ex_data[LOGO_MAX_NAME];	// 拡張データ領域
+static char ex_data[sizeof(LOGO_HEADER)] = { 0 };	// 拡張データ領域
 
 static UINT  WM_SEND_LOGO_DATA =0;	// ロゴ受信メッセージ
 
