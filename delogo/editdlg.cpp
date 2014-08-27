@@ -95,34 +95,30 @@ void on_wm_initdialog(HWND hdlg)
 *-------------------------------------------------------------------*/
 BOOL on_IDOK(HWND hdlg)
 {
-	LOGO_HEADER *newdata;
-	LOGO_HEADER *olddata;
-
 	char newname[LOGO_MAX_NAME];
-	int  num;
 
 	// 新ロゴ名前
 	GetDlgItemText(hdlg, ID_EDIT_NAME, newname, LOGO_MAX_NAME);
 	// リストボックスを検索
-	num = SendDlgItemMessage(owner, IDC_LIST, LB_FINDSTRING, -1, (WPARAM)newname);
+	int num = (int)SendDlgItemMessage(owner, IDC_LIST, LB_FINDSTRING, -1, (WPARAM)newname);
 	if (num != CB_ERR && num != list_n) { // 編集中のもの以外に同名が見つかった
 		MessageBox(hdlg, "同名のロゴがあります\n別の名称を設定してください", filter_name, MB_OK|MB_ICONERROR);
 		return FALSE;
 	}
 
-	olddata = (LOGO_HEADER *)SendDlgItemMessage(owner, IDC_LIST, LB_GETITEMDATA, list_n, 0);
+	LOGO_HEADER *olddata = (LOGO_HEADER *)SendDlgItemMessage(owner, IDC_LIST, LB_GETITEMDATA, list_n, 0);
 
 	// メモリ確保
-	newdata = (LOGO_HEADER *)malloc(LOGO_DATASIZE(olddata));
+	LOGO_HEADER *newdata = (LOGO_HEADER *)malloc(logo_data_size(olddata));
 	if (newdata == NULL) {
 		MessageBox(hdlg, "メモリを確保できませんでした", filter_name, MB_OK|MB_ICONERROR);
 		return TRUE;
 	}
 	// ロゴデータコピー
-	memcpy(newdata,olddata,LOGO_DATASIZE(olddata));
+	memcpy(newdata, olddata, logo_data_size(olddata));
 
 	// ロゴデータ設定
-	lstrcpy(newdata->name,newname);
+	lstrcpy(newdata->name, newname);
 	newdata->st = min(GetDlgItemInt(hdlg, ID_EDIT_START, NULL, FALSE), LOGO_STED_MAX);
 	newdata->ed = min(GetDlgItemInt(hdlg, ID_EDIT_END,   NULL, FALSE), LOGO_STED_MAX);
 	newdata->fi = min(GetDlgItemInt(hdlg, ID_EDIT_FIN,   NULL, FALSE), LOGO_FADE_MAX);

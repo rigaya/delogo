@@ -76,12 +76,15 @@ typedef struct {
 /*--------------------------------------------------------------------
 *	ロゴデータのサイズ（ヘッダ無し）
 *-------------------------------------------------------------------*/
-#define LOGO_PIXELSIZE(ptr)  \
-	(((LOGO_HEADER *)ptr)->h*((LOGO_HEADER *)ptr)->w*sizeof(LOGO_PIXEL))
+static inline int logo_pixel_size(LOGO_HEADER *ptr) {
+	return ptr->h * ptr->w * sizeof(LOGO_PIXEL);
+}
 
 /*--------------------------------------------------------------------
 *	ロゴデータ全体のサイズ
 *-------------------------------------------------------------------*/
-#define LOGO_DATASIZE(ptr) (sizeof(LOGO_HEADER)+LOGO_PIXELSIZE(ptr))
+static inline int logo_data_size(LOGO_HEADER *ptr) {
+	return sizeof(LOGO_HEADER) + logo_pixel_size(ptr);
+}
 
 #endif

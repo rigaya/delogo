@@ -17,12 +17,12 @@ static BOOL CopyTextToClipboard(HWND hwnd, const char* text);
 *===================================================================*/
 BOOL CALLBACK StrDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	static char str[STRDLG_MAXSTR];
+	char str[STRDLG_MAXSTR] = { 0 };
 
 	switch (msg) {
 		case WM_INITDIALOG:
 			SetDlgItemText(hdlg, ID_SHOW_STRING, (const char*)lParam);
-			lstrcpy(str,(const char*)lParam);
+			lstrcpy(str, (const char*)lParam);
 			return TRUE;
 
 		case WM_COMMAND:
@@ -46,18 +46,15 @@ BOOL CALLBACK StrDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 *-------------------------------------------------------------------*/
 static BOOL CopyTextToClipboard(HWND hwnd, const char* text)
 {
-	HGLOBAL hglbCopy;
-	char*   ptrCopy;
-
 	if (!OpenClipboard(hwnd)) return FALSE;
 
-	hglbCopy = GlobalAlloc(GMEM_MOVEABLE, lstrlen(text)+1);
-	if (hglbCopy==NULL) {
+	HGLOBAL hglbCopy = GlobalAlloc(GMEM_MOVEABLE, lstrlen(text)+1);
+	if (hglbCopy == NULL) {
 		CloseClipboard();
 		return FALSE;
 	}
 
-	ptrCopy = (char*)GlobalLock(hglbCopy);
+	char *ptrCopy = (char*)GlobalLock(hglbCopy);
 	lstrcpy(ptrCopy, text);
 	GlobalUnlock(hglbCopy);
 
@@ -66,7 +63,7 @@ static BOOL CopyTextToClipboard(HWND hwnd, const char* text)
 		CloseClipboard();
 		return FALSE;
 	}
-	if (SetClipboardData(CF_TEXT,hglbCopy) == NULL){
+	if (SetClipboardData(CF_TEXT, hglbCopy) == NULL) {
 		GlobalFree(hglbCopy);
 		CloseClipboard();
 		return FALSE;

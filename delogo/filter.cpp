@@ -150,15 +150,15 @@ typedef struct {
 	HWND  bt_synth;
 } FILTER_DIALOG;
 
-FILTER_DIALOG dialog;
+static FILTER_DIALOG dialog = { 0 };
 
-char  logodata_file[MAX_PATH] = { 0 };	// ロゴデータファイル名(INIに保存)
+static char  logodata_file[MAX_PATH] = { 0 };	// ロゴデータファイル名(INIに保存)
 
-LOGO_HEADER** logodata   = NULL;
-unsigned int  logodata_n = 0;
+static LOGO_HEADER** logodata   = NULL;
+static unsigned int  logodata_n = 0;
 
-void *adjdata = NULL;	// 位置調節後ロゴデータ用バッファ
-unsigned int adjdata_size = 0;
+static LOGO_HEADER *adjdata = NULL;	// 位置調節後ロゴデータ用バッファ
+static unsigned int adjdata_size = 0;
 
 static char ex_data[sizeof(LOGO_HEADER)] = { 0 };	// 拡張データ領域
 
@@ -192,26 +192,26 @@ BOOL func_proc_add_logo(FILTER *fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int);
 //	FILTER_DLL構造体
 //----------------------------
 char filter_name[] = LOGO_FILTER_NAME;
-char filter_info[] = LOGO_FILTER_NAME" ver 0.13 by MakKi";
+static char filter_info[] = LOGO_FILTER_NAME" ver 0.13 by MakKi";
 #define track_N 10
 #if track_N
-TCHAR *track_name[track_N] = { 	"位置 X", "位置 Y", 
-								"深度", "Y", "Cb", "Cr", 
-								"開始", "FadeIn", "FadeOut", "終了" }; // トラックバーの名前
-int   track_default[track_N] = { 0, 0,
-								 128, 0, 0, 0,
-								 0, 0, 0, 0 }; // トラックバーの初期値
-int   track_s[track_N] = { LOGO_XY_MIN, LOGO_XY_MIN,
-						   0, -100, -100, -100,
-						   LOGO_STED_MIN, 0, 0, LOGO_STED_MIN }; // トラックバーの下限値
-int   track_e[track_N] = { LOGO_XY_MAX, LOGO_XY_MAX,
-						   256, 100, 100, 100,
-						   LOGO_STED_MAX, LOGO_FADE_MAX, LOGO_FADE_MAX, LOGO_STED_MAX }; // トラックバーの上限値
+static TCHAR *track_name[track_N] = { 	"位置 X", "位置 Y", 
+	                                      "深度", "Y", "Cb", "Cr", 
+	                                      "開始", "FadeIn", "FadeOut", "終了" }; // トラックバーの名前
+static int   track_default[track_N] = { 0, 0,
+	                                     128, 0, 0, 0,
+	                                     0, 0, 0, 0 }; // トラックバーの初期値
+static int   track_s[track_N] = { LOGO_XY_MIN, LOGO_XY_MIN,
+	                               0, -100, -100, -100,
+	                               LOGO_STED_MIN, 0, 0, LOGO_STED_MIN }; // トラックバーの下限値
+static int   track_e[track_N] = { LOGO_XY_MAX, LOGO_XY_MAX,
+	                               256, 100, 100, 100,
+	                               LOGO_STED_MAX, LOGO_FADE_MAX, LOGO_FADE_MAX, LOGO_STED_MAX }; // トラックバーの上限値
 #endif
 #define check_N 3
 #if check_N
-TCHAR *check_name[]   = { "ロゴ付加モード","ロゴ除去モード","ﾌﾟﾛﾌｧｲﾙ境界をﾌｪｰﾄﾞ基点にする" }; // チェックボックス
-int   check_default[] = { 0, 1, 0 };	// デフォルト
+static TCHAR *check_name[]   = { "ロゴ付加モード","ロゴ除去モード","ﾌﾟﾛﾌｧｲﾙ境界をﾌｪｰﾄﾞ基点にする" }; // チェックボックス
+static int    check_default[] = { 0, 1, 0 };	// デフォルト
 #endif
 
 #define LOGO_X      0
@@ -234,8 +234,7 @@ int   check_default[] = { 0, 1, 0 };	// デフォルト
 // 設定ウィンドウの高さ
 #define WND_Y (67+24*track_N+20*check_N)
 
-
-FILTER_DLL filter = {
+static FILTER_DLL filter = {
 	FILTER_FLAG_WINDOW_SIZE |	//	フィルタのフラグ
 	FILTER_FLAG_EX_DATA |
 	FILTER_FLAG_EX_INFORMATION,
@@ -263,7 +262,7 @@ FILTER_DLL filter = {
 	func_WndProc,	// 設定ウィンドウプロシージャ
 	NULL,NULL,   	// システムで使用
 	ex_data,     	// 拡張データ領域
-	sizeof(LOGO_HEADER),//57102,	// 拡張データサイズ
+	sizeof(LOGO_HEADER),//57102, // 拡張データサイズ
 	filter_info, 	// フィルタ情報
 	NULL,			// セーブ開始直前に呼ばれる関数
 	NULL,			// セーブ終了時に呼ばれる関数
@@ -287,9 +286,6 @@ EXTERN_C FILTER_DLL __declspec(dllexport) * __stdcall GetFilterTable( void )
 *===================================================================*/
 BOOL func_init( FILTER *fp )
 {
-	ULONG   ptr;
-	HANDLE  hFile;
-
 	// INIからロゴデータファイル名を読み込む
 	fp->exfunc->ini_load_str(fp, LDP_KEY, logodata_file, NULL);
 
@@ -302,7 +298,7 @@ BOOL func_init( FILTER *fp )
 		}
 	} else { // ロゴデータファイル名があるとき
 		// 存在を調べる
-		hFile = CreateFile(logodata_file, 0, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+		HANDLE hFile = CreateFile(logodata_file, 0, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
 		if (hFile == INVALID_HANDLE_VALUE) { // みつからなかったとき
 			MessageBox(fp->hwnd, "ロゴデータファイルが見つかりません", filter_name, MB_OK|MB_ICONWARNING);
@@ -331,11 +327,9 @@ BOOL func_init( FILTER *fp )
 *===================================================================*/
 BOOL func_exit( FILTER *fp )
 {
-	unsigned int i;
-
 	// ロゴデータ開放
 	if (logodata) {
-		for (i = 0; i < logodata_n; i++) {
+		for (unsigned int i = 0; i < logodata_n; i++) {
 			if (logodata[i]) {
 				free(logodata[i]);
 				logodata[i] = NULL;
@@ -357,42 +351,38 @@ BOOL func_exit( FILTER *fp )
 *===================================================================*/
 BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip)
 {
-	unsigned int size;
-	int num;
-	int fade;
-
 	// ロゴ検索
-	num = find_logo(fp->ex_data_ptr);
+	int num = find_logo((const char *)fp->ex_data_ptr);
 	if (num < 0) return FALSE;
 
-	size = sizeof(LOGO_HEADER)
-		+ (logodata[num]->h+1) * (logodata[num]->w+1) * sizeof(LOGO_PIXEL);
+	unsigned int size = sizeof(LOGO_HEADER)
+		               + (logodata[num]->h + 1) * (logodata[num]->w + 1) * sizeof(LOGO_PIXEL);
 	if (size > adjdata_size) {
-		adjdata = realloc(adjdata, size);
+		adjdata = (LOGO_HEADER *)realloc(adjdata, size);
 		adjdata_size = size;
 	}
-	if (adjdata==NULL) { //確保失敗
+	if (adjdata == NULL) { //確保失敗
 		adjdata_size = 0;
 		return FALSE;
 	}
 
-	fade = calc_fade(fp, fpip);
+	int fade = calc_fade(fp, fpip);
 
 	if (fp->track[LOGO_X]%4 || fp->track[LOGO_Y]%4) {
 		// 位置調整が４の倍数でないとき、1/4ピクセル単位調整
-		if (!create_adj_exdata(fp, (void *)adjdata, logodata[num]))
+		if (!create_adj_exdata(fp, adjdata, logodata[num]))
 			return FALSE;
 	} else {
 		// 4の倍数のときはx,yのみ書き換え
-		memcpy(adjdata, logodata[num],size);
-		((LOGO_HEADER *)adjdata)->x += fp->track[LOGO_X] / 4;
-		((LOGO_HEADER *)adjdata)->y += fp->track[LOGO_Y] / 4;
+		memcpy(adjdata, logodata[num], size);
+		adjdata->x += fp->track[LOGO_X] / 4;
+		adjdata->y += fp->track[LOGO_Y] / 4;
 	}
 
 	if (fp->check[LOGO_DELMODE]) // 除去モードチェック
-		return func_proc_eraze_logo(fp, fpip, (void *)adjdata, fade); // ロゴ除去モード
+		return func_proc_eraze_logo(fp, fpip, adjdata, fade); // ロゴ除去モード
 	else
-		return func_proc_add_logo(fp, fpip, (void *)adjdata, fade); // ロゴ付加モード
+		return func_proc_add_logo(fp, fpip, adjdata, fade); // ロゴ付加モード
 }
 
 /*--------------------------------------------------------------------
@@ -400,30 +390,24 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip)
 *-------------------------------------------------------------------*/
 BOOL func_proc_eraze_logo(FILTER* fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, int fade)
 {
-	int   i,j;
-	int   yc;
-	int   dp;
-	PIXEL_YC    *ptr;
-	LOGO_PIXEL  *lgp;
-
-
 	// LOGO_PIXELデータへのポインタ
-	(void *)lgp = lgh + 1;
+	LOGO_PIXEL *lgp = (LOGO_PIXEL *)(lgh + 1);
 
 	// 左上の位置へ移動
-	ptr = fpip->ycp_edit;
+	PIXEL_YC *ptr = fpip->ycp_edit;
 	ptr += lgh->x + lgh->y * fpip->max_w;
 
-	for (i = 0; i < lgh->h; ++i) {
-		for (j = 0;j < lgh->w; ++j) {
+	for (int i = 0; i < lgh->h; ++i) {
+		for (int j = 0; j < lgh->w; ++j) {
 
 			if (ptr >= fpip->ycp_edit && // 画面内の時のみ処理
 			   ptr < fpip->ycp_edit + fpip->max_w*fpip->h) {
+				int dp;
 				// 輝度
 				dp = (lgp->dp_y * fp->track[LOGO_YDP] * fade +64)/128 /LOGO_FADE_MAX;
 				if (dp) {
 					if(dp==LOGO_MAX_DP) dp--; // 0での除算回避
-					yc = lgp->y + fp->track[LOGO_PY]*16;
+					int yc = lgp->y + fp->track[LOGO_PY]*16;
 					yc = (ptr->y*LOGO_MAX_DP - yc*dp +(LOGO_MAX_DP-dp)/2) /(LOGO_MAX_DP - dp);	// 逆算
 					ptr->y = Clamp(yc,-128,4096+128);
 				}
@@ -432,7 +416,7 @@ BOOL func_proc_eraze_logo(FILTER* fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, 
 				dp = (lgp->dp_cb * fp->track[LOGO_CBDP] * fade +64)/128 /LOGO_FADE_MAX;
 				if (dp) {
 					if(dp==LOGO_MAX_DP) dp--; // 0での除算回避
-					yc = lgp->cb + fp->track[LOGO_CB]*16;
+					int yc = lgp->cb + fp->track[LOGO_CB]*16;
 					yc = (ptr->cb*LOGO_MAX_DP - yc*dp +(LOGO_MAX_DP-dp)/2) /(LOGO_MAX_DP - dp);
 					ptr->cb = Clamp(yc,-2048-128,2048+128);
 				}
@@ -441,7 +425,7 @@ BOOL func_proc_eraze_logo(FILTER* fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, 
 				dp = (lgp->dp_cr * fp->track[LOGO_CRDP] * fade +64)/128 /LOGO_FADE_MAX;
 				if (dp) {
 					if(dp==LOGO_MAX_DP) dp--; // 0での除算回避
-					yc = lgp->cr + fp->track[LOGO_CR]*16;
+					int yc = lgp->cr + fp->track[LOGO_CR]*16;
 					yc = (ptr->cr*LOGO_MAX_DP - yc*dp +(LOGO_MAX_DP-dp)/2) /(LOGO_MAX_DP - dp);
 					ptr->cr = Clamp(yc,-2048-128,2048+128);
 				}
@@ -452,7 +436,7 @@ BOOL func_proc_eraze_logo(FILTER* fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, 
 			++lgp;
 		}
 		// 次のラインへ
-		ptr += fpip->max_w - j;
+		ptr += fpip->max_w - lgh->w;
 	}
 
 	return TRUE;
@@ -463,29 +447,23 @@ BOOL func_proc_eraze_logo(FILTER* fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, 
 *-------------------------------------------------------------------*/
 BOOL func_proc_add_logo(FILTER *fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, int fade)
 {
-	int   i,j;
-	int   yc;
-	PIXEL_YC    *ptr;
-	LOGO_PIXEL  *lgp;
-	int  dp;
-
-
 	// LOGO_PIXELデータへのポインタ
-	(void *)lgp = lgh + 1;
+	LOGO_PIXEL *lgp = (LOGO_PIXEL *)(lgh + 1);
 
 	// 左上の位置へ移動
-	ptr = fpip->ycp_edit;
+	PIXEL_YC *ptr = fpip->ycp_edit;
 	ptr += lgh->x + lgh->y * fpip->max_w;
 
-	for (i = 0; i < lgh->h; ++i) {
-		for (j = 0;j < lgh->w; ++j) {
+	for (int i = 0; i < lgh->h; ++i) {
+		for (int j = 0; j < lgh->w; ++j) {
 
 			if(ptr >= fpip->ycp_edit && // 画面内の時のみ処理
 			   ptr < fpip->ycp_edit + fpip->max_w*fpip->h) {
+				int dp;
 				// 輝度
 				dp = (lgp->dp_y * fp->track[LOGO_YDP] *fade +64)/128 /LOGO_FADE_MAX;
 				if (dp) {
-					yc = lgp->y    + fp->track[LOGO_PY]*16;
+					int yc = lgp->y    + fp->track[LOGO_PY]*16;
 					yc = (ptr->y*(LOGO_MAX_DP-dp) + yc*dp +(LOGO_MAX_DP/2)) /LOGO_MAX_DP; // ロゴ付加
 					ptr->y = Clamp(yc,-128,4096+128);
 				}
@@ -494,7 +472,7 @@ BOOL func_proc_add_logo(FILTER *fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, in
 				// 色差(青)
 				dp = (lgp->dp_cb * fp->track[LOGO_CBDP] *fade +64)/128 /LOGO_FADE_MAX;
 				if (dp) {
-					yc = lgp->cb   + fp->track[LOGO_CB]*16;
+					int yc = lgp->cb   + fp->track[LOGO_CB]*16;
 					yc = (ptr->cb*(LOGO_MAX_DP-dp) + yc*dp +(LOGO_MAX_DP/2)) /LOGO_MAX_DP;
 					ptr->cb = Clamp(yc,-2048-128,2048+128);
 				}
@@ -502,7 +480,7 @@ BOOL func_proc_add_logo(FILTER *fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, in
 				// 色差(赤)
 				dp = (lgp->dp_cr * fp->track[LOGO_CRDP] * fade +64)/128 /LOGO_FADE_MAX;
 				if (dp) {
-					yc = lgp->cr   + fp->track[LOGO_CR]*16;
+					int yc = lgp->cr   + fp->track[LOGO_CR]*16;
 					yc = (ptr->cr*(LOGO_MAX_DP-dp) + yc*dp +(LOGO_MAX_DP/2)) /LOGO_MAX_DP;
 					ptr->cr = Clamp(yc,-2048-128,2048+128);
 				}
@@ -513,7 +491,7 @@ BOOL func_proc_add_logo(FILTER *fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, in
 			++lgp;
 		}
 		// 次のラインへ
-		ptr += fpip->max_w - j;
+		ptr += fpip->max_w - lgh->w;
 	}
 
 	return TRUE;
@@ -524,13 +502,10 @@ BOOL func_proc_add_logo(FILTER *fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, in
 *-------------------------------------------------------------------*/
 static int find_logo(const char *logo_name)
 {
-	unsigned int i;
-
-	for (i = 0;i < logodata_n; ++i) {
-		if (lstrcmp((char *)logodata[i], logo_name) == 0)
+	for (unsigned int i = 0; i < logodata_n; ++i) {
+		if (0 == lstrcmp((char *)logodata[i], logo_name))
 			return i;
 	}
-
 	return -1;
 }
 
@@ -539,18 +514,16 @@ static int find_logo(const char *logo_name)
 *-------------------------------------------------------------------*/
 static int calc_fade(FILTER *fp, FILTER_PROC_INFO *fpip)
 {
-	int fade;
-	int s,e;
+	int s, e;
 
 	if (fp->check[LOGO_BASEPROFILE]) {
 		FRAME_STATUS fs;
-		int profile;
-		int i;
-
 		if (!fp->exfunc->get_frame_status(fpip->editp, fpip->frame, &fs))
 			return LOGO_FADE_MAX;
-		profile = fs.config;
 
+		int profile = fs.config;
+
+		int i;
 		for (i = fpip->frame; i; --i) {
 			if (!fp->exfunc->get_frame_status(fpip->editp, i-1, &fs))
 				return LOGO_FADE_MAX;
@@ -573,6 +546,7 @@ static int calc_fade(FILTER *fp, FILTER_PROC_INFO *fpip)
 	}
 
 	// フェード不透明度計算
+	int fade = 0;
 	if (fpip->frame < s+fp->track[LOGO_STRT]+fp->track[LOGO_FIN]) {
 		if (fpip->frame < s+fp->track[LOGO_STRT])
 			return 0; // フェードイン前
@@ -664,11 +638,9 @@ BOOL func_WndProc( HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, void *
 *-------------------------------------------------------------------*/
 static void on_wm_filter_init(FILTER* fp)
 {
-	unsigned int i;
-
 	init_dialog(fp->hwnd, fp->dll_hinst);
 	// コンボアイテムセット
-	for (i = 0; i < logodata_n; i++)
+	for (unsigned int i = 0; i < logodata_n; i++)
 		set_combo_item(logodata[i]);
 
 	// ロゴデータ受信メッセージ登録
@@ -681,26 +653,19 @@ static void on_wm_filter_init(FILTER* fp)
 *-------------------------------------------------------------------*/
 static void on_wm_filter_exit(FILTER* fp)
 {
-	int    i,num;
-	char   n;
-	DWORD  dw;
-	HANDLE hFile;
-	void*  data;
-	LOGO_FILE_HEADER lfh;
-
 	if (lstrlen(logodata_file) == 0) { // ロゴデータファイル名がないとき
-		if (!fp->exfunc->dlg_get_load_name(logodata_file,LDP_FILTER,LDP_DEFAULT)) {
+		if (!fp->exfunc->dlg_get_load_name(logodata_file, LDP_FILTER, LDP_DEFAULT)) {
 			// キャンセルされた
-			MessageBox(fp->hwnd,"ロゴデータは保存されません",filter_name,MB_OK|MB_ICONWARNING);
+			MessageBox(fp->hwnd,"ロゴデータは保存されません", filter_name, MB_OK|MB_ICONWARNING);
 			return;
 		}
 	} else { // ロゴデータファイル名があるとき
 		// 存在を調べる
-		hFile = CreateFile(logodata_file, 0, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,NULL);
+		HANDLE hFile = CreateFile(logodata_file, 0, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
 		if (hFile == INVALID_HANDLE_VALUE) { // みつからなかったとき
-			MessageBox(fp->hwnd,"ロゴデータファイルが見つかりません",filter_name,MB_OK|MB_ICONWARNING);
-			if (!fp->exfunc->dlg_get_load_name(logodata_file,LDP_FILTER,LDP_DEFAULT)) {
+			MessageBox(fp->hwnd,"ロゴデータファイルが見つかりません",filter_name, MB_OK|MB_ICONWARNING);
+			if (!fp->exfunc->dlg_get_load_name(logodata_file, LDP_FILTER, LDP_DEFAULT)) {
 				// キャンセルされた
 				MessageBox(fp->hwnd,"ロゴデータは保存されません",filter_name,MB_OK|MB_ICONWARNING);
 				return;
@@ -711,46 +676,46 @@ static void on_wm_filter_exit(FILTER* fp)
 	}
 
 	// 登録されているアイテムの数
-	num = SendMessage(dialog.cb_logo, CB_GETCOUNT, 0, 0);
+	int num = SendMessage(dialog.cb_logo, CB_GETCOUNT, 0, 0);
 
 	// ファイルオープン
-	hFile = CreateFile(logodata_file,GENERIC_WRITE, 0, 0,CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFile(logodata_file, GENERIC_WRITE, 0, 0, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	
 	SetFilePointer(hFile, 0, 0, FILE_BEGIN); // 先頭へ
 
 	// ヘッダ書き込み
-	ZeroMemory(&lfh, sizeof(lfh));
-	strcpy(lfh.str, LOGO_FILE_HEADER_STR);
-	dw = 0;
-	WriteFile(hFile, &lfh, sizeof(LOGO_FILE_HEADER), &dw, NULL);
-	if (dw != 32) {	// 書き込み失敗
+	LOGO_FILE_HEADER logo_file_header = { 0 };
+	strcpy(logo_file_header.str, LOGO_FILE_HEADER_STR);
+	DWORD data_written = 0;
+	WriteFile(hFile, &logo_file_header, sizeof(LOGO_FILE_HEADER), &data_written, NULL);
+	if (data_written != 32) {	// 書き込み失敗
 		MessageBox(fp->hwnd, "ロゴデータ保存に失敗しました(1)", filter_name, MB_OK|MB_ICONERROR);
 	} else { // 成功
-		n = 0;
+		int total_count = 0;
 		// 各データ書き込み
-		for (i = 0; i < num; i++) {
-			dw = 0;
-			data = (void *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0); // データのポインタ取得
-			WriteFile(hFile, data, LOGO_DATASIZE(data), &dw, NULL);
-			if (dw != LOGO_DATASIZE(data)) {
+		for (int i = 0; i < num; i++) {
+			data_written = 0;
+			LOGO_HEADER *data = (LOGO_HEADER *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0); // データのポインタ取得
+			WriteFile(hFile, data, logo_data_size(data), &data_written, NULL);
+			if (data_written != logo_data_size(data)) {
 				MessageBox(fp->hwnd,"ロゴデータ保存に失敗しました(2)", filter_name, MB_OK|MB_ICONERROR);
 				break;
 			}
-			n++;
+			total_count++;
 		}
 
-		lfh.logonum.l = SWAP_ENDIAN(n);
+		logo_file_header.logonum.l = SWAP_ENDIAN(total_count);
 		SetFilePointer(hFile,0, 0, FILE_BEGIN); // 先頭へ
-		dw = 0;
-		WriteFile(hFile, &lfh, sizeof(lfh), &dw, NULL);
-		if (dw != sizeof(lfh))
-			MessageBox(fp->hwnd,"ロゴデータ保存に失敗しました(3)",filter_name,MB_OK|MB_ICONERROR);
+		data_written = 0;
+		WriteFile(hFile, &logo_file_header, sizeof(logo_file_header), &data_written, NULL);
+		if (data_written != sizeof(logo_file_header))
+			MessageBox(fp->hwnd, "ロゴデータ保存に失敗しました(3)", filter_name, MB_OK|MB_ICONERROR);
 	}
 
 	CloseHandle(hFile);
 
 	// INIにロゴデータファイル名保存
-	fp->exfunc->ini_save_str(fp,LDP_KEY,logodata_file);
+	fp->exfunc->ini_save_str(fp, LDP_KEY, logodata_file);
 }
 
 /*--------------------------------------------------------------------
@@ -786,12 +751,7 @@ static void init_dialog(HWND hwnd, HINSTANCE hinst)
 *-------------------------------------------------------------------*/
 static BOOL create_adj_exdata(FILTER *fp, LOGO_HEADER *adjdata, const LOGO_HEADER *data)
 {
-	int  i,j;
-	int  w,h;
-	int  temp;
-	int  adjx,adjy;
-	LOGO_PIXEL *df;
-	LOGO_PIXEL *ex;
+	int i, j;
 
 	if (data == NULL)
 		return FALSE;
@@ -803,15 +763,17 @@ static BOOL create_adj_exdata(FILTER *fp, LOGO_HEADER *adjdata, const LOGO_HEADE
 	adjdata->x = data->x + (int)(fp->track[LOGO_X]-LOGO_XY_MIN)/4 + LOGO_XY_MIN/4;
 	adjdata->y = data->y + (int)(fp->track[LOGO_Y]-LOGO_XY_MIN)/4 + LOGO_XY_MIN/4;
 
-	adjdata->w = w = data->w + 1; // 1/4単位調整するため
-	adjdata->h = h = data->h + 1; // 幅、高さを１増やす
+	const int w = data->w + 1; // 1/4単位調整するため
+	const int h = data->h + 1; // 幅、高さを１増やす
+	adjdata->w = w; 
+	adjdata->h = h;
 
 	// LOGO_PIXELの先頭
-	(void *)df = (void *)(data +1);
-	(void *)ex = (void *)(adjdata +1);
+	LOGO_PIXEL *df = (LOGO_PIXEL *)(data +1);
+	LOGO_PIXEL *ex = (LOGO_PIXEL *)(adjdata +1);
 
-	adjx = (fp->track[LOGO_X]-LOGO_XY_MIN) % 4; // 位置端数
-	adjy = (fp->track[LOGO_Y]-LOGO_XY_MIN) % 4;
+	const int adjx = (fp->track[LOGO_X]-LOGO_XY_MIN) % 4; // 位置端数
+	const int adjy = (fp->track[LOGO_Y]-LOGO_XY_MIN) % 4;
 
 	//----------------------------------------------------- 一番上の列
 	ex[0].dp_y  = df[0].dp_y *(4-adjx)*(4-adjy)/16; // 左端
@@ -980,10 +942,8 @@ static BOOL create_adj_exdata(FILTER *fp, LOGO_HEADER *adjdata, const LOGO_HEADE
 *-------------------------------------------------------------------*/
 static void update_cb_logo(char *name)
 {
-	int num;
-
 	// コンボボックス検索
-	num = SendMessage(dialog.cb_logo, CB_FINDSTRING, -1, (WPARAM)name);
+	int num = SendMessage(dialog.cb_logo, CB_FINDSTRING, -1, (WPARAM)name);
 
 	if (num == CB_ERR) // みつからなかった
 		num = -1;
@@ -1026,10 +986,8 @@ static void change_param(FILTER* fp)
 *-------------------------------------------------------------------*/
 static int set_combo_item(void* data)
 {
-	int num;
-
 	// コンボボックスアイテム数
-	num = SendMessage(dialog.cb_logo, CB_GETCOUNT, 0, 0);
+	int num = SendMessage(dialog.cb_logo, CB_GETCOUNT, 0, 0);
 
 	// 最後尾に追加
 	SendMessage(dialog.cb_logo, CB_INSERTSTRING, num, (LPARAM)data);
@@ -1043,18 +1001,15 @@ static int set_combo_item(void* data)
 *-------------------------------------------------------------------*/
 static void del_combo_item(int num)
 {
-	void *ptr;
-	unsigned int i;
-
-	ptr = (void *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, num, 0);
+	void *ptr = (void *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, num, 0);
 	if (ptr) free(ptr);
 
 	// ロゴデータ配列再構成
 	logodata_n = SendMessage(dialog.cb_logo, CB_GETCOUNT, 0, 0);
-	logodata = realloc(logodata, logodata_n * sizeof(logodata));
+	logodata = (LOGO_HEADER **)realloc(logodata, logodata_n * sizeof(logodata));
 
-	for (i = 0; i < logodata_n; i++)
-		logodata[i] = (void *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0);
+	for (unsigned int i = 0; i < logodata_n; i++)
+		logodata[i] = (LOGO_HEADER *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0);
 
 	SendMessage(dialog.cb_logo, CB_DELETESTRING, num, 0);
 }
@@ -1067,18 +1022,8 @@ static void del_combo_item(int num)
 *-------------------------------------------------------------------*/
 static void read_logo_pack(char *fname, FILTER *fp)
 {
-	HANDLE hFile;
-	LOGO_FILE_HEADER lfh;
-	LOGO_HEADER lgh;
-	DWORD readed = 0;
-	ULONG ptr;
-	void* data;
-	int i;
-	int same;
-	int logonum;
-
 	// ファイルオープン
-	hFile = CreateFile(fname,GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	HANDLE hFile = CreateFile(fname,GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
 	if (hFile == INVALID_HANDLE_VALUE) {
 		MessageBox(fp->hwnd, "ロゴデータファイルが見つかりません", filter_name, MB_OK|MB_ICONERROR);
@@ -1086,22 +1031,25 @@ static void read_logo_pack(char *fname, FILTER *fp)
 	}
 	if (GetFileSize(hFile, NULL) < sizeof(LOGO_FILE_HEADER)) { // サイズ確認
 		CloseHandle(hFile);
-		MessageBox(fp->hwnd,"ロゴデータファイルが不正です",filter_name,MB_OK|MB_ICONERROR);
+		MessageBox(fp->hwnd, "ロゴデータファイルが不正です", filter_name, MB_OK|MB_ICONERROR);
 		return;
 	}
 
 //	SetFilePointer(hFile,31, 0, FILE_BEGIN);	// 先頭から31byteへ
-	ReadFile(hFile,&lfh,sizeof(LOGO_FILE_HEADER),&readed,NULL);	// ファイルヘッダ取得
+	DWORD readed = 0;
+	LOGO_FILE_HEADER logo_file_header = { 0 };
+	ReadFile(hFile, &logo_file_header, sizeof(logo_file_header), &readed, NULL); // ファイルヘッダ取得
 
 	logodata_n = 0;	// 書き込みデータカウンタ
 	logodata = NULL;
-	logonum = SWAP_ENDIAN(lfh.logonum.l);
+	int logonum = SWAP_ENDIAN(logo_file_header.logonum.l);
 
-	for (i = 0; i < logonum; i++) {
+	for (int i = 0; i < logonum; i++) {
 
 		// LOGO_HEADER 読み込み
 		readed = 0;
-		ReadFile(hFile, &lgh, sizeof(LOGO_HEADER), &readed, NULL);
+		LOGO_HEADER logo_header = { 0 };
+		ReadFile(hFile, &logo_header, sizeof(LOGO_HEADER), &readed, NULL);
 		if (readed != sizeof(LOGO_HEADER)) {
 			MessageBox(fp->hwnd, "ロゴデータの読み込みに失敗しました", filter_name, MB_OK|MB_ICONERROR);
 			break;
@@ -1110,7 +1058,7 @@ static void read_logo_pack(char *fname, FILTER *fp)
 //  ldpには基本的に同名のロゴは存在しない
 //
 //		// 同名ロゴがあるか
-//		same = find_logodata(lgh.name);
+//		int same = find_logodata(lgh.name);
 //		if (same>0) {
 //			wsprintf(message,"同名のロゴがあります\n置き換えますか？\n\n%s",lgh.name);
 //			if (MessageBox(fp->hwnd, message, filter_name, MB_YESNO|MB_ICONQUESTION) == IDYES) {
@@ -1124,31 +1072,31 @@ static void read_logo_pack(char *fname, FILTER *fp)
 //		}
 
 		// メモリ確保
-		data = malloc(LOGO_DATASIZE(&lgh));
+		BYTE *data = (BYTE *)calloc(logo_data_size(&logo_header), 1);
 		if (data == NULL) {
-			MessageBox(fp->hwnd,"メモリが足りません",filter_name,MB_OK|MB_ICONERROR);
+			MessageBox(fp->hwnd, "メモリが足りません", filter_name, MB_OK|MB_ICONERROR);
 			break;
 		}
 
 		// LOGO_HEADERコピー
-		*((LOGO_HEADER *)data) = lgh;
+		memcpy(data, &logo_header, sizeof(logo_header));
 
-		ptr = (unsigned long)data + sizeof(LOGO_HEADER);
+		LOGO_HEADER* ptr = (LOGO_HEADER *)(data + sizeof(LOGO_HEADER));
 
 		// LOGO_PIXEL読み込み
 		readed = 0;
-		ReadFile(hFile, (void *)ptr, LOGO_PIXELSIZE(&lgh), &readed, NULL);
+		ReadFile(hFile, ptr, logo_pixel_size(&logo_header), &readed, NULL);
 
-		if (LOGO_PIXELSIZE(&lgh) > readed) { // 尻切れ対策
+		if (logo_pixel_size(&logo_header) > readed) { // 尻切れ対策
 			readed -= readed % 2;
 			ptr    += readed;
-			memset((void *)ptr,0,LOGO_PIXELSIZE(&lgh) - readed);
+			memset(ptr, 0, logo_pixel_size(&logo_header) - readed);
 		}
 
 		// logodataポインタ配列に追加
 		logodata_n++;
-		logodata = realloc(logodata, logodata_n * sizeof(logodata));
-		logodata[logodata_n-1] = data;
+		logodata = (LOGO_HEADER **)realloc(logodata, logodata_n * sizeof(logodata));
+		logodata[logodata_n-1] = (LOGO_HEADER *)data;
 	}
 
 	CloseHandle(hFile);
@@ -1164,10 +1112,6 @@ static void read_logo_pack(char *fname, FILTER *fp)
 *-------------------------------------------------------------------*/
 static BOOL on_option_button(FILTER* fp)
 {
-	LRESULT res;
-	void   *data;
-	unsigned int i;
-
 	// オプションダイアログが参照する
 	optfp = fp;
 	hcb_logo = dialog.cb_logo;
@@ -1175,7 +1119,7 @@ static BOOL on_option_button(FILTER* fp)
 	EnableWindow(dialog.bt_opt, FALSE); // オプションボタン無効化
 
 	// オプションダイアログ表示（モーダルフレーム）
-	res = DialogBox(fp->dll_hinst, "OPT_DLG", GetWindow(fp->hwnd, GW_OWNER), OptDlgProc);
+	LRESULT res = DialogBox(fp->dll_hinst, "OPT_DLG", GetWindow(fp->hwnd, GW_OWNER), OptDlgProc);
 
 	EnableWindow(dialog.bt_opt, TRUE); // 有効に戻す
 
@@ -1183,9 +1127,9 @@ static BOOL on_option_button(FILTER* fp)
 		logodata_n = SendMessage(dialog.cb_logo, CB_GETCOUNT, 0, 0);
 
 		// logodata配列再構成
-		logodata = realloc(logodata, logodata_n * sizeof(logodata));
-		for (i = 0; i < logodata_n; i++)
-			logodata[i] = (void *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0);
+		logodata = (LOGO_HEADER **)realloc(logodata, logodata_n * sizeof(logodata));
+		for (unsigned int i = 0; i < logodata_n; i++)
+			logodata[i] = (LOGO_HEADER *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0);
 
 		if (logodata_n)	// 拡張データ初期値設定
 			fp->ex_data_def = logodata[0];
@@ -1201,16 +1145,12 @@ static BOOL on_option_button(FILTER* fp)
 *-------------------------------------------------------------------*/
 static void set_sended_data(void* data, FILTER* fp)
 {
-	static char message[256];
-	void *ptr;
-	UINT same;
-	LOGO_HEADER *lgh;
-
-	lgh = (LOGO_HEADER *)data;
+	LOGO_HEADER *logo_header = (LOGO_HEADER *)data;
 
 	// 同名のロゴがあるかどうか
-	same = SendMessage(dialog.cb_logo, CB_FINDSTRING, -1, (WPARAM)lgh->name);
+	int same = SendMessage(dialog.cb_logo, CB_FINDSTRING, -1, (WPARAM)logo_header->name);
 	if (same != CB_ERR) {
+		char message[256] = { 0 };
 		wsprintf(message,"同名のロゴがあります\n置き換えますか？\n\n%s", data);
 		if (MessageBox(fp->hwnd, message, filter_name, MB_YESNO|MB_ICONQUESTION) != IDYES)
 			return; // 上書きしない
@@ -1218,21 +1158,20 @@ static void set_sended_data(void* data, FILTER* fp)
 		del_combo_item(same);
 	}
 
-	ptr = malloc(LOGO_DATASIZE(lgh));
+	LOGO_HEADER *ptr = (LOGO_HEADER *)malloc(logo_data_size(logo_header));
 	if (ptr == NULL) {
 		MessageBox(fp->hwnd,"メモリが確保できませんでした", filter_name, MB_OK|MB_ICONERROR);
 		return;
 	}
 
-	memcpy(ptr, data, LOGO_DATASIZE(data));
+	memcpy(ptr, data, logo_data_size(logo_header));
 
 	logodata_n++;
-	logodata = realloc(logodata,logodata_n * sizeof(logodata));
-
+	logodata = (LOGO_HEADER **)realloc(logodata, logodata_n * sizeof(logodata));
 	logodata[logodata_n-1] = ptr;
 	set_combo_item(ptr);
 
-	lstrcpy(fp->ex_data_ptr, ptr); // 拡張領域にロゴ名をコピー
+	memcpy(fp->ex_data_ptr, ptr, LOGO_MAX_NAME); // 拡張領域にロゴ名をコピー
 }
 
 
@@ -1241,8 +1180,7 @@ static void set_sended_data(void* data, FILTER* fp)
 *-------------------------------------------------------------------*/
 static BOOL on_avisynth_button(FILTER* fp, void *editp)
 {
-	static char str[STRDLG_MAXSTR];
-	int  s,e;
+	char str[STRDLG_MAXSTR];
 
 	// スクリプト生成
 	wsprintf(str,"%sLOGO(logofile=\"%s\",\r\n"
@@ -1259,6 +1197,7 @@ static BOOL on_avisynth_button(FILTER* fp, void *editp)
 
 
 	if (fp->exfunc->get_frame_n(editp)) { // 画像が読み込まれているとき
+		int s, e;
 		fp->exfunc->get_select_frame(editp, &s, &e); // 選択範囲取得
 		wsprintf(str, "%s,\r\n\\           start=%d", str, s + fp->track[LOGO_STRT]);
 
@@ -1289,7 +1228,7 @@ static BOOL on_avisynth_button(FILTER* fp, void *editp)
 /*********************************************************************
 *	DLLMain
 *********************************************************************/
-BOOL WINAPI DllMain(HINSTANCE hinstDLL,DWORD fdwReason,LPVOID lpvReserved)
+BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
 #define TRACK_N track_N
 #define CHECK_N check_N
@@ -1297,69 +1236,70 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,DWORD fdwReason,LPVOID lpvReserved)
 #define FILTER_TRACK_MAX 16
 #define FILTER_CHECK_MAX 32
 
-  //FILTER filter = ::filter;
-  static char *strings[1+TRACK_N+CHECK_N];
-  char key[16];
-  char ini_name[MAX_PATH];
-  int i;
+	//FILTER filter = ::filter;
+	static char *strings[1+TRACK_N+CHECK_N] = { 0 };
+	char key[16];
+	char ini_name[MAX_PATH];
 
-  switch (fdwReason) {
-    case DLL_PROCESS_ATTACH: // 開始時
-      // iniファイル名を取得
-      GetModuleFileName(hinstDLL,ini_name,MAX_PATH-4);
-      strcat(ini_name,".ini");
+	switch (fdwReason) {
+	case DLL_PROCESS_ATTACH: // 開始時
+		// iniファイル名を取得
+		GetModuleFileName(hinstDLL, ini_name, MAX_PATH-4);
+		strcat(ini_name, ".ini");
 
-      // フィルタ名
-      strings[0] = malloc(FILTER_NAME_MAX);
-      if (strings[0] == NULL) break;
-      GetPrivateProfileString("string", "name", filter.name, strings[0], FILTER_NAME_MAX, ini_name);
-      filter.name = strings[0];
+		// フィルタ名
+		strings[0] = (char *)calloc(FILTER_NAME_MAX, 1);
+		if (strings[0] == NULL) break;
+		GetPrivateProfileString("string", "name", filter.name, strings[0], FILTER_NAME_MAX, ini_name);
+		filter.name = strings[0];
 
-      // トラック名
-      for (i = 0; i < TRACK_N; i++) {
-        strings[i+1] = malloc(FILTER_TRACK_MAX);
-        if (strings[i+1] == NULL) break;
-        wsprintf(key, "track%d", i);
-        GetPrivateProfileString("string", key, filter.track_name[i], strings[i+1], FILTER_TRACK_MAX, ini_name);
-        filter.track_name[i] = strings[i+1];
-      }
-      // トラック デフォルト値
-      for (i = 0; i < TRACK_N; i++) {
-        wsprintf(key, "track%d_def", i);
-        filter.track_default[i] = GetPrivateProfileInt("int", key,filter.track_default[i], ini_name);
-      }
-      // トラック 最小値
-      for (i = 0; i < TRACK_N; i++) {
-        wsprintf(key, "track%d_min", i);
-        filter.track_s[i] = GetPrivateProfileInt("int", key, filter.track_s[i], ini_name);
-      }
-      // トラック 最大値
-      for (i = 0; i < TRACK_N; i++) {
-        wsprintf(key,"track%d_max",i);
-        filter.track_e[i] = GetPrivateProfileInt("int", key, filter.track_e[i], ini_name);
-      }
+		// トラック名
+		for (int i = 0; i < TRACK_N; i++) {
+			strings[i+1] = (char *)calloc(FILTER_TRACK_MAX, 1);
+			if (strings[i+1] == NULL) break;
+			wsprintf(key, "track%d", i);
+			GetPrivateProfileString("string", key, filter.track_name[i], strings[i+1], FILTER_TRACK_MAX, ini_name);
+			filter.track_name[i] = strings[i+1];
+		}
+		// トラック デフォルト値
+		for (int i = 0; i < TRACK_N; i++) {
+			wsprintf(key, "track%d_def", i);
+			filter.track_default[i] = GetPrivateProfileInt("int", key, filter.track_default[i], ini_name);
+		}
+		// トラック 最小値
+		for (int i = 0; i < TRACK_N; i++) {
+			wsprintf(key, "track%d_min", i);
+			filter.track_s[i] = GetPrivateProfileInt("int", key, filter.track_s[i], ini_name);
+		}
+		// トラック 最大値
+		for (int i = 0; i < TRACK_N; i++) {
+			wsprintf(key, "track%d_max", i);
+			filter.track_e[i] = GetPrivateProfileInt("int", key, filter.track_e[i], ini_name);
+		}
 
-      // チェック名
-      for (i = 0; i < CHECK_N; i++){
-        strings[i+TRACK_N+1] = malloc(FILTER_CHECK_MAX);
-        if (strings[i+TRACK_N+1] == NULL) break;
-        wsprintf(key, "check%d", i);
-        GetPrivateProfileString("string", key,filter.check_name[i], strings[i+TRACK_N+1], FILTER_CHECK_MAX, ini_name);
-        filter.check_name[i] = strings[i+TRACK_N+1];
-      }
-      break;
+		// チェック名
+		for (int i = 0; i < CHECK_N; i++) {
+			strings[i+TRACK_N+1] = (char *)calloc(FILTER_CHECK_MAX, 1);
+			if (strings[i+TRACK_N+1] == NULL) break;
+			wsprintf(key, "check%d", i);
+			GetPrivateProfileString("string", key, filter.check_name[i], strings[i+TRACK_N+1], FILTER_CHECK_MAX, ini_name);
+			filter.check_name[i] = strings[i+TRACK_N+1];
+		}
+		break;
 
-    case DLL_PROCESS_DETACH: // 終了時
-      // stringsを破棄
-      for (i = 0; i < 1+TRACK_N+CHECK_N && strings[i]; i++)
-        free(strings[i]);
-      break;
+	case DLL_PROCESS_DETACH: // 終了時
+		// stringsを破棄
+		for (int i = 0; i < 1+TRACK_N+CHECK_N && strings[i]; i++) {
+			free(strings[i]);
+			strings[i] = NULL;
+		}
+		break;
 
-    case DLL_THREAD_ATTACH:
-    case DLL_THREAD_DETACH:
-      break;
-  }
-  return TRUE;
+	case DLL_THREAD_ATTACH:
+	case DLL_THREAD_DETACH:
+		break;
+	}
+	return TRUE;
 }
 
 //*/
