@@ -68,6 +68,8 @@ extern char filter_name[];
 /*====================================================================
 * 	OptDlgProc()		コールバックプロシージャ
 *===================================================================*/
+#pragma warning (push)
+#pragma warning (disable: 4100) //C4100: 'lParam' : 引数は関数の本体部で 1 度も参照されません。
 BOOL CALLBACK OptDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	switch (msg) {
@@ -139,7 +141,7 @@ BOOL CALLBACK OptDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 
 	return FALSE;
 }
-
+#pragma warning (pop)
 /*--------------------------------------------------------------------
 * 	Wm_initdialog()	初期化
 *-------------------------------------------------------------------*/
@@ -403,7 +405,7 @@ static int ReadLogoData(char *fname, HWND hdlg)
 		}
 
 		// 同名ロゴがあるか
-		int same = SendDlgItemMessage(hdlg, IDC_LIST, LB_FINDSTRING, -1, (WPARAM)logo_header.name);
+		int same = SendDlgItemMessage(hdlg, IDC_LIST, LB_FINDSTRING, (WPARAM)-1, (WPARAM)logo_header.name);
 		if (same != CB_ERR) {
 			char message[256];
 			wsprintf(message, "同名のロゴがあります\n置き換えますか？\n\n%s", logo_header.name);
@@ -433,7 +435,7 @@ static int ReadLogoData(char *fname, HWND hdlg)
 		readed = 0;
 		ReadFile(hFile, ptr, logo_pixel_size(&logo_header), &readed, NULL);
 
-		if (logo_pixel_size(&logo_header) > readed) { // 尻切れ対策
+		if (logo_pixel_size(&logo_header) > (int)readed) { // 尻切れ対策
 			readed -= readed % 2;
 			ptr    += readed;
 			memset(ptr, 0, logo_pixel_size(&logo_header) - readed);
@@ -473,7 +475,7 @@ static void ExportLogoData(char *fname, void *data, HWND hdlg)
 
 	// ヘッダ書き込み
 	LOGO_FILE_HEADER logo_file_header = { 0 };
-	strcpy(logo_file_header.str, LOGO_FILE_HEADER_STR);
+	strcpy_s(logo_file_header.str, LOGO_FILE_HEADER_STR);
 	logo_file_header.logonum.l = SWAP_ENDIAN(1); // データ数は必ず１
 
 	DWORD data_written = 0;
@@ -674,13 +676,13 @@ static void DispLogo(HWND hdlg)
 		}
 	}
 
-	int x = (rec.right-rec.left - logo_header->w*magnify +1)/2 + rec.left; // 中央に表示するように
-	int y = (rec.bottom-rec.top - logo_header->h*magnify +1)/2 + rec.top; // left,topを計算
+	int x = (rec.right-rec.left - (int)(logo_header->w * magnify + 0.5) +1)/2 + rec.left; // 中央に表示するように
+	int y = (rec.bottom-rec.top - (int)(logo_header->h * magnify + 0.5) +1)/2 + rec.top; // left,topを計算
 
 	SetStretchBltMode(hdc, COLORONCOLOR);
 	// 拡大表示
 	StretchDIBits(hdc, x, y,
-		            logo_header->w * magnify,logo_header->h * magnify,
+		            (int)(logo_header->w * magnify + 0.5), (int)(logo_header->h * magnify + 0.5),
 		            0, 0, logo_header->w, logo_header->h, pix, &bmi, DIB_RGB_COLORS, SRCCOPY);
 
 	ReleaseDC(panel, hdc);
@@ -700,7 +702,7 @@ static void set_bgyc(HWND hdlg)
 	if (trans==FALSE) p.b = 0;
 	else if (t > 255) p.b = 255;
 	else if (t < 0)   p.b = 0;
-	else  p.b = t;
+	else  p.b = (unsigned char)t;
 	if (t != p.b)
 		SetDlgItemInt(hdlg, IDC_BLUE, p.b, FALSE);
 
@@ -708,7 +710,7 @@ static void set_bgyc(HWND hdlg)
 	if (trans==FALSE) p.g = 0;
 	else if (t > 255) p.g = 255;
 	else if (t < 0)   p.g = 0;
-	else  p.g = t;
+	else  p.g = (unsigned char)t;
 	if (t != p.g)
 		SetDlgItemInt(hdlg, IDC_GREEN, p.g, FALSE);
 
@@ -716,7 +718,7 @@ static void set_bgyc(HWND hdlg)
 	if (trans==FALSE) p.r = 0;
 	else if (t > 255) p.r = 255;
 	else if (t < 0)   p.r = 0;
-	else  p.r = t;
+	else  p.r = (unsigned char)t;
 	if (t != p.r)
 		SetDlgItemInt(hdlg, IDC_RED, p.r, FALSE);
 

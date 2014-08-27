@@ -325,6 +325,8 @@ BOOL func_init( FILTER *fp )
 /*====================================================================
 *	終了時に呼ばれる関数
 *===================================================================*/
+#pragma warning (push)
+#pragma warning (disable: 4100) //'fp' : 引数は関数の本体部で 1 度も参照されません。
 BOOL func_exit( FILTER *fp )
 {
 	// ロゴデータ開放
@@ -345,7 +347,7 @@ BOOL func_exit( FILTER *fp )
 
 	return TRUE;
 }
-
+#pragma warning (pop)
 /*====================================================================
 *	フィルタ処理関数
 *===================================================================*/
@@ -375,8 +377,8 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip)
 	} else {
 		// 4の倍数のときはx,yのみ書き換え
 		memcpy(adjdata, logodata[num], size);
-		adjdata->x += fp->track[LOGO_X] / 4;
-		adjdata->y += fp->track[LOGO_Y] / 4;
+		adjdata->x += (short)(fp->track[LOGO_X] / 4);
+		adjdata->y += (short)(fp->track[LOGO_Y] / 4);
 	}
 
 	if (fp->check[LOGO_DELMODE]) // 除去モードチェック
@@ -409,7 +411,7 @@ BOOL func_proc_eraze_logo(FILTER* fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, 
 					if(dp==LOGO_MAX_DP) dp--; // 0での除算回避
 					int yc = lgp->y + fp->track[LOGO_PY]*16;
 					yc = (ptr->y*LOGO_MAX_DP - yc*dp +(LOGO_MAX_DP-dp)/2) /(LOGO_MAX_DP - dp);	// 逆算
-					ptr->y = Clamp(yc,-128,4096+128);
+					ptr->y = (short)Clamp(yc,-128,4096+128);
 				}
 
 				// 色差(青)
@@ -418,7 +420,7 @@ BOOL func_proc_eraze_logo(FILTER* fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, 
 					if(dp==LOGO_MAX_DP) dp--; // 0での除算回避
 					int yc = lgp->cb + fp->track[LOGO_CB]*16;
 					yc = (ptr->cb*LOGO_MAX_DP - yc*dp +(LOGO_MAX_DP-dp)/2) /(LOGO_MAX_DP - dp);
-					ptr->cb = Clamp(yc,-2048-128,2048+128);
+					ptr->cb = (short)Clamp(yc,-2048-128,2048+128);
 				}
 
 				// 色差(赤)
@@ -427,7 +429,7 @@ BOOL func_proc_eraze_logo(FILTER* fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, 
 					if(dp==LOGO_MAX_DP) dp--; // 0での除算回避
 					int yc = lgp->cr + fp->track[LOGO_CR]*16;
 					yc = (ptr->cr*LOGO_MAX_DP - yc*dp +(LOGO_MAX_DP-dp)/2) /(LOGO_MAX_DP - dp);
-					ptr->cr = Clamp(yc,-2048-128,2048+128);
+					ptr->cr = (short)Clamp(yc,-2048-128,2048+128);
 				}
 
 			} // if画面内
@@ -465,7 +467,7 @@ BOOL func_proc_add_logo(FILTER *fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, in
 				if (dp) {
 					int yc = lgp->y    + fp->track[LOGO_PY]*16;
 					yc = (ptr->y*(LOGO_MAX_DP-dp) + yc*dp +(LOGO_MAX_DP/2)) /LOGO_MAX_DP; // ロゴ付加
-					ptr->y = Clamp(yc,-128,4096+128);
+					ptr->y = (short)Clamp(yc,-128,4096+128);
 				}
 
 
@@ -474,7 +476,7 @@ BOOL func_proc_add_logo(FILTER *fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, in
 				if (dp) {
 					int yc = lgp->cb   + fp->track[LOGO_CB]*16;
 					yc = (ptr->cb*(LOGO_MAX_DP-dp) + yc*dp +(LOGO_MAX_DP/2)) /LOGO_MAX_DP;
-					ptr->cb = Clamp(yc,-2048-128,2048+128);
+					ptr->cb = (short)Clamp(yc,-2048-128,2048+128);
 				}
 
 				// 色差(赤)
@@ -482,7 +484,7 @@ BOOL func_proc_add_logo(FILTER *fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, in
 				if (dp) {
 					int yc = lgp->cr   + fp->track[LOGO_CR]*16;
 					yc = (ptr->cr*(LOGO_MAX_DP-dp) + yc*dp +(LOGO_MAX_DP/2)) /LOGO_MAX_DP;
-					ptr->cr = Clamp(yc,-2048-128,2048+128);
+					ptr->cr = (short)Clamp(yc,-2048-128,2048+128);
 				}
 
 			} // if画面内
@@ -685,7 +687,7 @@ static void on_wm_filter_exit(FILTER* fp)
 
 	// ヘッダ書き込み
 	LOGO_FILE_HEADER logo_file_header = { 0 };
-	strcpy(logo_file_header.str, LOGO_FILE_HEADER_STR);
+	strcpy_s(logo_file_header.str, LOGO_FILE_HEADER_STR);
 	DWORD data_written = 0;
 	WriteFile(hFile, &logo_file_header, sizeof(LOGO_FILE_HEADER), &data_written, NULL);
 	if (data_written != 32) {	// 書き込み失敗
@@ -697,7 +699,7 @@ static void on_wm_filter_exit(FILTER* fp)
 			data_written = 0;
 			LOGO_HEADER *data = (LOGO_HEADER *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0); // データのポインタ取得
 			WriteFile(hFile, data, logo_data_size(data), &data_written, NULL);
-			if (data_written != logo_data_size(data)) {
+			if ((int)data_written != logo_data_size(data)) {
 				MessageBox(fp->hwnd,"ロゴデータ保存に失敗しました(2)", filter_name, MB_OK|MB_ICONERROR);
 				break;
 			}
@@ -749,6 +751,8 @@ static void init_dialog(HWND hwnd, HINSTANCE hinst)
 /*--------------------------------------------------------------------
 *	create_adj_exdata()		位置調整ロゴデータ作成
 *-------------------------------------------------------------------*/
+#pragma warning (push)
+#pragma warning (disable: 4244) //C4244: '=' : 'int' から 'short' への変換です。データが失われる可能性があります。
 static BOOL create_adj_exdata(FILTER *fp, LOGO_HEADER *adjdata, const LOGO_HEADER *data)
 {
 	int i, j;
@@ -934,7 +938,7 @@ static BOOL create_adj_exdata(FILTER *fp, LOGO_HEADER *adjdata, const LOGO_HEADE
 
 	return TRUE;
 }
-
+#pragma warning (pop)
 
 /*--------------------------------------------------------------------
 *	update_combobox()		コンボボックスの選択を更新
@@ -943,7 +947,7 @@ static BOOL create_adj_exdata(FILTER *fp, LOGO_HEADER *adjdata, const LOGO_HEADE
 static void update_cb_logo(char *name)
 {
 	// コンボボックス検索
-	int num = SendMessage(dialog.cb_logo, CB_FINDSTRING, -1, (WPARAM)name);
+	int num = SendMessage(dialog.cb_logo, CB_FINDSTRING, (WPARAM)-1, (WPARAM)name);
 
 	if (num == CB_ERR) // みつからなかった
 		num = -1;
@@ -1087,7 +1091,7 @@ static void read_logo_pack(char *fname, FILTER *fp)
 		readed = 0;
 		ReadFile(hFile, ptr, logo_pixel_size(&logo_header), &readed, NULL);
 
-		if (logo_pixel_size(&logo_header) > readed) { // 尻切れ対策
+		if (logo_pixel_size(&logo_header) > (int)readed) { // 尻切れ対策
 			readed -= readed % 2;
 			ptr    += readed;
 			memset(ptr, 0, logo_pixel_size(&logo_header) - readed);
@@ -1148,7 +1152,7 @@ static void set_sended_data(void* data, FILTER* fp)
 	LOGO_HEADER *logo_header = (LOGO_HEADER *)data;
 
 	// 同名のロゴがあるかどうか
-	int same = SendMessage(dialog.cb_logo, CB_FINDSTRING, -1, (WPARAM)logo_header->name);
+	int same = SendMessage(dialog.cb_logo, CB_FINDSTRING, (WPARAM)-1, (WPARAM)logo_header->name);
 	if (same != CB_ERR) {
 		char message[256] = { 0 };
 		wsprintf(message,"同名のロゴがあります\n置き換えますか？\n\n%s", data);
@@ -1228,6 +1232,8 @@ static BOOL on_avisynth_button(FILTER* fp, void *editp)
 /*********************************************************************
 *	DLLMain
 *********************************************************************/
+#pragma warning (push)
+#pragma warning (disable: 4100)
 BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 {
 #define TRACK_N track_N
@@ -1245,7 +1251,7 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	case DLL_PROCESS_ATTACH: // 開始時
 		// iniファイル名を取得
 		GetModuleFileName(hinstDLL, ini_name, MAX_PATH-4);
-		strcat(ini_name, ".ini");
+		strcat_s(ini_name, ".ini");
 
 		// フィルタ名
 		strings[0] = (char *)calloc(FILTER_NAME_MAX, 1);
@@ -1301,5 +1307,5 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 	}
 	return TRUE;
 }
-
+#pragma warning (pop)
 //*/

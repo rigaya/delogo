@@ -100,7 +100,7 @@ BOOL on_IDOK(HWND hdlg)
 	// 新ロゴ名前
 	GetDlgItemText(hdlg, ID_EDIT_NAME, newname, LOGO_MAX_NAME);
 	// リストボックスを検索
-	int num = (int)SendDlgItemMessage(owner, IDC_LIST, LB_FINDSTRING, -1, (WPARAM)newname);
+	int num = SendDlgItemMessage(owner, IDC_LIST, LB_FINDSTRING, (WPARAM)-1, (WPARAM)newname);
 	if (num != CB_ERR && num != list_n) { // 編集中のもの以外に同名が見つかった
 		MessageBox(hdlg, "同名のロゴがあります\n別の名称を設定してください", filter_name, MB_OK|MB_ICONERROR);
 		return FALSE;
@@ -119,12 +119,12 @@ BOOL on_IDOK(HWND hdlg)
 
 	// ロゴデータ設定
 	lstrcpy(newdata->name, newname);
-	newdata->st = min(GetDlgItemInt(hdlg, ID_EDIT_START, NULL, FALSE), LOGO_STED_MAX);
-	newdata->ed = min(GetDlgItemInt(hdlg, ID_EDIT_END,   NULL, FALSE), LOGO_STED_MAX);
-	newdata->fi = min(GetDlgItemInt(hdlg, ID_EDIT_FIN,   NULL, FALSE), LOGO_FADE_MAX);
-	newdata->fo = min(GetDlgItemInt(hdlg, ID_EDIT_FOUT,  NULL, FALSE), LOGO_FADE_MAX);
-	newdata->x  =     GetDlgItemInt(hdlg, ID_EDIT_X,     NULL, FALSE);
-	newdata->y  =     GetDlgItemInt(hdlg, ID_EDIT_Y,     NULL, FALSE);
+	newdata->st = (short)min(GetDlgItemInt(hdlg, ID_EDIT_START, NULL, FALSE), LOGO_STED_MAX);
+	newdata->ed = (short)min(GetDlgItemInt(hdlg, ID_EDIT_END,   NULL, FALSE), LOGO_STED_MAX);
+	newdata->fi = (short)min(GetDlgItemInt(hdlg, ID_EDIT_FIN,   NULL, FALSE), LOGO_FADE_MAX);
+	newdata->fo = (short)min(GetDlgItemInt(hdlg, ID_EDIT_FOUT,  NULL, FALSE), LOGO_FADE_MAX);
+	newdata->x  =     (short)GetDlgItemInt(hdlg, ID_EDIT_X,     NULL, FALSE);
+	newdata->y  =     (short)GetDlgItemInt(hdlg, ID_EDIT_Y,     NULL, FALSE);
 
 	// リストボックスを更新
 	DeleteItem(owner, list_n);
