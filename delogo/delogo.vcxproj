@@ -74,14 +74,15 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DELOGO_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <OmitFramePointers>true</OmitFramePointers>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <StringPooling>true</StringPooling>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <BufferSecurityCheck>false</BufferSecurityCheck>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <FloatingPointModel>Fast</FloatingPointModel>
+      <AssemblerOutput>All</AssemblerOutput>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -95,12 +96,20 @@
     <ResourceCompile Include="delogo.rc" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="delogo_proc.cpp" />
+    <ClCompile Include="delogo_proc_avx2.cpp">
+      <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AdvancedVectorExtensions</EnableEnhancedInstructionSet>
+    </ClCompile>
+    <ClCompile Include="delogo_proc_sse2.cpp" />
+    <ClCompile Include="delogo_proc_sse41.cpp" />
     <ClCompile Include="editdlg.cpp" />
     <ClCompile Include="filter.cpp" />
     <ClCompile Include="optdlg.cpp" />
     <ClCompile Include="strdlg.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="delogo_proc.h" />
+    <ClInclude Include="delogo_proc_simd.h" />
     <ClInclude Include="editdlg.h" />
     <ClInclude Include="filter.h" />
     <ClInclude Include="logo.h" />

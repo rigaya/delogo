@@ -126,6 +126,7 @@
 #include "send_lgd.h"
 #include "strdlg.h"
 #include "logodef.h"
+#include "delogo_proc.h"
 
 
 #define ID_BUTTON_OPTION 40001
@@ -162,8 +163,9 @@ static unsigned int adjdata_size = 0;
 
 static char ex_data[sizeof(LOGO_HEADER)] = { 0 };	// 拡張データ領域
 
-static UINT  WM_SEND_LOGO_DATA =0;	// ロゴ受信メッセージ
+static UINT  WM_SEND_LOGO_DATA = 0;	// ロゴ受信メッセージ
 
+static FUNC_PROCESS_LOGO func_logo_erase = NULL; //ロゴ除去関数
 
 //----------------------------
 //	プロトタイプ宣言
@@ -286,6 +288,9 @@ EXTERN_C FILTER_DLL __declspec(dllexport) * __stdcall GetFilterTable( void )
 *===================================================================*/
 BOOL func_init( FILTER *fp )
 {
+	//使用する関数を取得
+	func_logo_erase = get_delogo_func();
+
 	// INIからロゴデータファイル名を読み込む
 	fp->exfunc->ini_load_str(fp, LDP_KEY, logodata_file, NULL);
 
@@ -345,6 +350,8 @@ BOOL func_exit( FILTER *fp )
 	adjdata = NULL;
 	adjdata_size = 0;
 
+	func_logo_erase = NULL;
+
 	return TRUE;
 }
 #pragma warning (pop)
@@ -382,7 +389,7 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip)
 	}
 
 	if (fp->check[LOGO_DELMODE]) // 除去モードチェック
-		return func_proc_eraze_logo(fp, fpip, adjdata, fade); // ロゴ除去モード
+		return func_logo_erase(fp, fpip, adjdata, fade); // ロゴ除去モード
 	else
 		return func_proc_add_logo(fp, fpip, adjdata, fade); // ロゴ付加モード
 }
