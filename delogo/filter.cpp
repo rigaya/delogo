@@ -197,20 +197,20 @@ char filter_info[] = LOGO_FILTER_NAME" ver 0.13 by MakKi";
 #if track_N
 TCHAR *track_name[track_N] = { 	"位置 X", "位置 Y", 
 								"深度", "Y", "Cb", "Cr", 
-								"開始", "FadeIn", "FadeOut", "終了" };	// トラックバーの名前
+								"開始", "FadeIn", "FadeOut", "終了" }; // トラックバーの名前
 int   track_default[track_N] = { 0, 0,
 								 128, 0, 0, 0,
-								 0, 0, 0, 0 };	// トラックバーの初期値
+								 0, 0, 0, 0 }; // トラックバーの初期値
 int   track_s[track_N] = { LOGO_XY_MIN, LOGO_XY_MIN,
 						   0, -100, -100, -100,
-						   LOGO_STED_MIN, 0, 0, LOGO_STED_MIN };	// トラックバーの下限値
+						   LOGO_STED_MIN, 0, 0, LOGO_STED_MIN }; // トラックバーの下限値
 int   track_e[track_N] = { LOGO_XY_MAX, LOGO_XY_MAX,
 						   256, 100, 100, 100,
-						   LOGO_STED_MAX, LOGO_FADE_MAX, LOGO_FADE_MAX, LOGO_STED_MAX };	// トラックバーの上限値
+						   LOGO_STED_MAX, LOGO_FADE_MAX, LOGO_FADE_MAX, LOGO_STED_MAX }; // トラックバーの上限値
 #endif
 #define check_N 3
 #if check_N
-TCHAR *check_name[]   = { "ロゴ付加モード","ロゴ除去モード","ﾌﾟﾛﾌｧｲﾙ境界をﾌｪｰﾄﾞ基点にする" };	// チェックボックス
+TCHAR *check_name[]   = { "ロゴ付加モード","ロゴ除去モード","ﾌﾟﾛﾌｧｲﾙ境界をﾌｪｰﾄﾞ基点にする" }; // チェックボックス
 int   check_default[] = { 0, 1, 0 };	// デフォルト
 #endif
 
@@ -291,36 +291,35 @@ BOOL func_init( FILTER *fp )
 	HANDLE  hFile;
 
 	// INIからロゴデータファイル名を読み込む
-	fp->exfunc->ini_load_str(fp,LDP_KEY,logodata_file,NULL);
+	fp->exfunc->ini_load_str(fp, LDP_KEY, logodata_file, NULL);
 
-	if(lstrlen(logodata_file)==0){	// ロゴデータファイル名がなかったとき
+	if (lstrlen(logodata_file) == 0) { // ロゴデータファイル名がなかったとき
 		// 読み込みダイアログ
-		if(!fp->exfunc->dlg_get_load_name(logodata_file,LDP_FILTER,LDP_DEFAULT)){
+		if (!fp->exfunc->dlg_get_load_name(logodata_file, LDP_FILTER, LDP_DEFAULT)) {
 			// キャンセルされた
-			MessageBox(fp->hwnd,"ロゴデータファイルがありません",filter_name,MB_OK|MB_ICONWARNING);
+			MessageBox(fp->hwnd, "ロゴデータファイルがありません", filter_name, MB_OK|MB_ICONWARNING);
 			return FALSE;
 		}
-	}
-	else{	// ロゴデータファイル名があるとき
+	} else { // ロゴデータファイル名があるとき
 		// 存在を調べる
-		hFile = CreateFile(logodata_file, 0, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,NULL);
+		hFile = CreateFile(logodata_file, 0, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-		if(hFile==INVALID_HANDLE_VALUE){	// みつからなかったとき
-			MessageBox(fp->hwnd,"ロゴデータファイルが見つかりません",filter_name,MB_OK|MB_ICONWARNING);
-			if(!fp->exfunc->dlg_get_load_name(logodata_file,LDP_FILTER,LDP_DEFAULT)){
+		if (hFile == INVALID_HANDLE_VALUE) { // みつからなかったとき
+			MessageBox(fp->hwnd, "ロゴデータファイルが見つかりません", filter_name, MB_OK|MB_ICONWARNING);
+			if (!fp->exfunc->dlg_get_load_name(logodata_file, LDP_FILTER, LDP_DEFAULT)) {
 				// キャンセルされた
-				MessageBox(fp->hwnd,"ロゴデータファイルが指定されていません",filter_name,MB_OK|MB_ICONWARNING);
+				MessageBox(fp->hwnd, "ロゴデータファイルが指定されていません", filter_name, MB_OK|MB_ICONWARNING);
 				return FALSE;
 			}
-		}
-		else
+		} else {
 			CloseHandle(hFile);
+		}
 	}
 
 	// ロゴファイル読み込み
-	read_logo_pack(logodata_file,fp);
+	read_logo_pack(logodata_file, fp);
 
-	if(logodata_n)
+	if (logodata_n)
 		// 拡張データ初期値設定
 		fp->ex_data_def = logodata[0];
 
@@ -335,9 +334,9 @@ BOOL func_exit( FILTER *fp )
 	unsigned int i;
 
 	// ロゴデータ開放
-	if(logodata){
-		for(i=0;i<logodata_n;i++){
-			if(logodata[i]){
+	if (logodata) {
+		for (i = 0; i < logodata_n; i++) {
+			if (logodata[i]) {
 				free(logodata[i]);
 				logodata[i] = NULL;
 			}
@@ -356,7 +355,7 @@ BOOL func_exit( FILTER *fp )
 /*====================================================================
 *	フィルタ処理関数
 *===================================================================*/
-BOOL func_proc(FILTER *fp,FILTER_PROC_INFO *fpip)
+BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip)
 {
 	unsigned int size;
 	int num;
@@ -364,43 +363,42 @@ BOOL func_proc(FILTER *fp,FILTER_PROC_INFO *fpip)
 
 	// ロゴ検索
 	num = find_logo(fp->ex_data_ptr);
-	if(num<0) return FALSE;
+	if (num < 0) return FALSE;
 
 	size = sizeof(LOGO_HEADER)
 		+ (logodata[num]->h+1) * (logodata[num]->w+1) * sizeof(LOGO_PIXEL);
-	if(size > adjdata_size){
-		adjdata = realloc(adjdata,size);
+	if (size > adjdata_size) {
+		adjdata = realloc(adjdata, size);
 		adjdata_size = size;
 	}
-	if(adjdata==NULL){	//確保失敗
+	if (adjdata==NULL) { //確保失敗
 		adjdata_size = 0;
 		return FALSE;
 	}
 
-	fade = calc_fade(fp,fpip);
+	fade = calc_fade(fp, fpip);
 
-	if(fp->track[LOGO_X]%4 || fp->track[LOGO_Y]%4){
+	if (fp->track[LOGO_X]%4 || fp->track[LOGO_Y]%4) {
 		// 位置調整が４の倍数でないとき、1/4ピクセル単位調整
-		if(!create_adj_exdata(fp,(void *)adjdata,logodata[num]))
+		if (!create_adj_exdata(fp, (void *)adjdata, logodata[num]))
 			return FALSE;
-	}
-	else{
+	} else {
 		// 4の倍数のときはx,yのみ書き換え
-		memcpy(adjdata,logodata[num],size);
+		memcpy(adjdata, logodata[num],size);
 		((LOGO_HEADER *)adjdata)->x += fp->track[LOGO_X] / 4;
 		((LOGO_HEADER *)adjdata)->y += fp->track[LOGO_Y] / 4;
 	}
 
-	if(fp->check[LOGO_DELMODE])	// 除去モードチェック
-		return func_proc_eraze_logo(fp,fpip,(void *)adjdata,fade);	// ロゴ除去モード
+	if (fp->check[LOGO_DELMODE]) // 除去モードチェック
+		return func_proc_eraze_logo(fp, fpip, (void *)adjdata, fade); // ロゴ除去モード
 	else
-		return func_proc_add_logo(fp,fpip,(void *)adjdata,fade);	// ロゴ付加モード
+		return func_proc_add_logo(fp, fpip, (void *)adjdata, fade); // ロゴ付加モード
 }
 
 /*--------------------------------------------------------------------
 * 	func_proc_eraze_logo()	ロゴ除去モード
 *-------------------------------------------------------------------*/
-BOOL func_proc_eraze_logo(FILTER* fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int fade)
+BOOL func_proc_eraze_logo(FILTER* fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, int fade)
 {
 	int   i,j;
 	int   yc;
@@ -416,16 +414,15 @@ BOOL func_proc_eraze_logo(FILTER* fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int
 	ptr = fpip->ycp_edit;
 	ptr += lgh->x + lgh->y * fpip->max_w;
 
-	for(i=0;i < lgh->h;++i){
-		for(j=0;j < lgh->w;++j){
+	for (i = 0; i < lgh->h; ++i) {
+		for (j = 0;j < lgh->w; ++j) {
 
-			if(ptr >= fpip->ycp_edit &&	// 画面内の時のみ処理
-			   ptr < fpip->ycp_edit + fpip->max_w*fpip->h)
-			{
+			if (ptr >= fpip->ycp_edit && // 画面内の時のみ処理
+			   ptr < fpip->ycp_edit + fpip->max_w*fpip->h) {
 				// 輝度
 				dp = (lgp->dp_y * fp->track[LOGO_YDP] * fade +64)/128 /LOGO_FADE_MAX;
-				if(dp){
-					if(dp==LOGO_MAX_DP) dp--;	// 0での除算回避
+				if (dp) {
+					if(dp==LOGO_MAX_DP) dp--; // 0での除算回避
 					yc = lgp->y + fp->track[LOGO_PY]*16;
 					yc = (ptr->y*LOGO_MAX_DP - yc*dp +(LOGO_MAX_DP-dp)/2) /(LOGO_MAX_DP - dp);	// 逆算
 					ptr->y = Clamp(yc,-128,4096+128);
@@ -433,8 +430,8 @@ BOOL func_proc_eraze_logo(FILTER* fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int
 
 				// 色差(青)
 				dp = (lgp->dp_cb * fp->track[LOGO_CBDP] * fade +64)/128 /LOGO_FADE_MAX;
-				if(dp){
-					if(dp==LOGO_MAX_DP) dp--;	// 0での除算回避
+				if (dp) {
+					if(dp==LOGO_MAX_DP) dp--; // 0での除算回避
 					yc = lgp->cb + fp->track[LOGO_CB]*16;
 					yc = (ptr->cb*LOGO_MAX_DP - yc*dp +(LOGO_MAX_DP-dp)/2) /(LOGO_MAX_DP - dp);
 					ptr->cb = Clamp(yc,-2048-128,2048+128);
@@ -442,16 +439,16 @@ BOOL func_proc_eraze_logo(FILTER* fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int
 
 				// 色差(赤)
 				dp = (lgp->dp_cr * fp->track[LOGO_CRDP] * fade +64)/128 /LOGO_FADE_MAX;
-				if(dp){
-					if(dp==LOGO_MAX_DP) dp--;	// 0での除算回避
+				if (dp) {
+					if(dp==LOGO_MAX_DP) dp--; // 0での除算回避
 					yc = lgp->cr + fp->track[LOGO_CR]*16;
 					yc = (ptr->cr*LOGO_MAX_DP - yc*dp +(LOGO_MAX_DP-dp)/2) /(LOGO_MAX_DP - dp);
 					ptr->cr = Clamp(yc,-2048-128,2048+128);
 				}
 
-			}	// if画面内
+			} // if画面内
 
-			++ptr;	// 隣りへ
+			++ptr; // 隣りへ
 			++lgp;
 		}
 		// 次のラインへ
@@ -464,7 +461,7 @@ BOOL func_proc_eraze_logo(FILTER* fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int
 /*--------------------------------------------------------------------
 * 	func_proc_add_logo()	ロゴ付加モード
 *-------------------------------------------------------------------*/
-BOOL func_proc_add_logo(FILTER *fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int fade)
+BOOL func_proc_add_logo(FILTER *fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, int fade)
 {
 	int   i,j;
 	int   yc;
@@ -480,24 +477,23 @@ BOOL func_proc_add_logo(FILTER *fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int f
 	ptr = fpip->ycp_edit;
 	ptr += lgh->x + lgh->y * fpip->max_w;
 
-	for(i=0;i < lgh->h;++i){
-		for(j=0;j < lgh->w;++j){
+	for (i = 0; i < lgh->h; ++i) {
+		for (j = 0;j < lgh->w; ++j) {
 
-			if(ptr >= fpip->ycp_edit &&	// 画面内の時のみ処理
-			   ptr < fpip->ycp_edit + fpip->max_w*fpip->h)
-			{
+			if(ptr >= fpip->ycp_edit && // 画面内の時のみ処理
+			   ptr < fpip->ycp_edit + fpip->max_w*fpip->h) {
 				// 輝度
 				dp = (lgp->dp_y * fp->track[LOGO_YDP] *fade +64)/128 /LOGO_FADE_MAX;
-				if(dp){
+				if (dp) {
 					yc = lgp->y    + fp->track[LOGO_PY]*16;
-					yc = (ptr->y*(LOGO_MAX_DP-dp) + yc*dp +(LOGO_MAX_DP/2)) /LOGO_MAX_DP;	// ロゴ付加
+					yc = (ptr->y*(LOGO_MAX_DP-dp) + yc*dp +(LOGO_MAX_DP/2)) /LOGO_MAX_DP; // ロゴ付加
 					ptr->y = Clamp(yc,-128,4096+128);
 				}
 
 
 				// 色差(青)
 				dp = (lgp->dp_cb * fp->track[LOGO_CBDP] *fade +64)/128 /LOGO_FADE_MAX;
-				if(dp){
+				if (dp) {
 					yc = lgp->cb   + fp->track[LOGO_CB]*16;
 					yc = (ptr->cb*(LOGO_MAX_DP-dp) + yc*dp +(LOGO_MAX_DP/2)) /LOGO_MAX_DP;
 					ptr->cb = Clamp(yc,-2048-128,2048+128);
@@ -505,15 +501,15 @@ BOOL func_proc_add_logo(FILTER *fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int f
 
 				// 色差(赤)
 				dp = (lgp->dp_cr * fp->track[LOGO_CRDP] * fade +64)/128 /LOGO_FADE_MAX;
-				if(dp){
+				if (dp) {
 					yc = lgp->cr   + fp->track[LOGO_CR]*16;
 					yc = (ptr->cr*(LOGO_MAX_DP-dp) + yc*dp +(LOGO_MAX_DP/2)) /LOGO_MAX_DP;
 					ptr->cr = Clamp(yc,-2048-128,2048+128);
 				}
 
-			}	// if画面内
+			} // if画面内
 
-			++ptr;	// 隣りへ
+			++ptr; // 隣りへ
 			++lgp;
 		}
 		// 次のラインへ
@@ -530,8 +526,8 @@ static int find_logo(const char *logo_name)
 {
 	unsigned int i;
 
-	for(i=0;i<logodata_n;++i){
-		if(lstrcmp((char *)logodata[i],logo_name)==0)
+	for (i = 0;i < logodata_n; ++i) {
+		if (lstrcmp((char *)logodata[i], logo_name) == 0)
 			return i;
 	}
 
@@ -541,57 +537,55 @@ static int find_logo(const char *logo_name)
 /*--------------------------------------------------------------------
 * 	calc_fade()		フェード不透明度計算
 *-------------------------------------------------------------------*/
-static int calc_fade(FILTER *fp,FILTER_PROC_INFO *fpip)
+static int calc_fade(FILTER *fp, FILTER_PROC_INFO *fpip)
 {
 	int fade;
 	int s,e;
 
-	if(fp->check[LOGO_BASEPROFILE]){
+	if (fp->check[LOGO_BASEPROFILE]) {
 		FRAME_STATUS fs;
 		int profile;
 		int i;
 
-		if(!fp->exfunc->get_frame_status(fpip->editp,fpip->frame,&fs))
+		if (!fp->exfunc->get_frame_status(fpip->editp, fpip->frame, &fs))
 			return LOGO_FADE_MAX;
 		profile = fs.config;
 
-		for(i=fpip->frame;i;--i){
-			if(!fp->exfunc->get_frame_status(fpip->editp,i-1,&fs))
+		for (i = fpip->frame; i; --i) {
+			if (!fp->exfunc->get_frame_status(fpip->editp, i-1, &fs))
 				return LOGO_FADE_MAX;
-			if(fs.config != profile)
+			if (fs.config != profile)
 				break;
 		}
 		s = i;
 
-		for(i=fpip->frame;i<fpip->frame_n-1;++i){
-			if(!fp->exfunc->get_frame_status(fpip->editp,i+1,&fs))
+		for (i = fpip->frame; i < fpip->frame_n-1; ++i) {
+			if (!fp->exfunc->get_frame_status(fpip->editp, i+1, &fs))
 				return LOGO_FADE_MAX;
-			if(fs.config != profile)
+			if (fs.config != profile)
 				break;
 		}
 		e = i;
-	}
-	else{
+	} else {
 		// 選択範囲取得
-		if(!fp->exfunc->get_select_frame(fpip->editp,&s,&e))
+		if (!fp->exfunc->get_select_frame(fpip->editp, &s, &e))
 			return LOGO_FADE_MAX;
 	}
 
 	// フェード不透明度計算
-	if(fpip->frame < s+fp->track[LOGO_STRT]+fp->track[LOGO_FIN]){
-		if(fpip->frame < s+fp->track[LOGO_STRT])
-			return 0;	// フェードイン前
-		else	// フェードイン
+	if (fpip->frame < s+fp->track[LOGO_STRT]+fp->track[LOGO_FIN]) {
+		if (fpip->frame < s+fp->track[LOGO_STRT])
+			return 0; // フェードイン前
+		else // フェードイン
 			fade = ((fpip->frame-s-fp->track[LOGO_STRT])*2 +1)*LOGO_FADE_MAX / (fp->track[LOGO_FIN]*2);
-	}
-	else if(fpip->frame > e-fp->track[LOGO_FOUT]-fp->track[LOGO_END]){
-		if(fpip->frame > e-fp->track[LOGO_END])
-			return 0;	// フェードアウト後
-		else	// フェードアウト
+	} else if (fpip->frame > e-fp->track[LOGO_FOUT]-fp->track[LOGO_END]) {
+		if (fpip->frame > e-fp->track[LOGO_END])
+			return 0; // フェードアウト後
+		else // フェードアウト
 			fade = ((e-fpip->frame-fp->track[LOGO_END])*2+1)*LOGO_FADE_MAX / (fp->track[LOGO_FOUT]*2);
+	} else {
+		fade = LOGO_FADE_MAX; // 通常
 	}
-	else
-		fade = LOGO_FADE_MAX;	// 通常
 
 	return fade;
 }
@@ -601,36 +595,35 @@ static int calc_fade(FILTER *fp,FILTER_PROC_INFO *fpip)
 *===================================================================*/
 BOOL func_WndProc( HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, void *editp, FILTER *fp )
 {
-	static int mode = 1;	// 0:addlogo; 1:delogo
+	static int mode = 1; // 0:addlogo; 1:delogo
 
-	if(message==WM_SEND_LOGO_DATA){	// ロゴデータ受信
+	if (message == WM_SEND_LOGO_DATA) { // ロゴデータ受信
 		set_sended_data((void *)wParam,fp);
 		return TRUE;
 	}
 
-	switch(message){
-		case WM_FILTER_INIT:	// 初期化
+	switch (message) {
+		case WM_FILTER_INIT: // 初期化
 			on_wm_filter_init(fp);
 			return TRUE;
 
-		case WM_FILTER_EXIT:	// 終了
+		case WM_FILTER_EXIT: // 終了
 			on_wm_filter_exit(fp);
 			break;
 
-		case WM_FILTER_UPDATE:	// フィルタ更新
-		case WM_FILTER_SAVE_END:	// セーブ終了
+		case WM_FILTER_UPDATE: // フィルタ更新
+		case WM_FILTER_SAVE_END: // セーブ終了
 			// コンボボックス表示更新
 			update_cb_logo(ex_data);
 			break;
 
 		case WM_FILTER_CHANGE_PARAM:
-			if(fp->check[!mode]){	// モードが変更された
+			if (fp->check[!mode]) { // モードが変更された
 				fp->check[mode] = 0;
 				fp->exfunc->filter_window_update(fp);
-				mode = !mode;
+				mode = (!mode);
 				return TRUE;
-			}
-			else if(!fp->check[mode]){
+			} else if(!fp->check[mode]) {
 				fp->check[mode] = 1;
 				fp->exfunc->filter_window_update(fp);
 				return TRUE;
@@ -639,13 +632,13 @@ BOOL func_WndProc( HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, void *
 
 		//---------------------------------------------ボタン動作
 		case WM_COMMAND:
-			switch(LOWORD(wParam)){
-				case ID_BUTTON_OPTION:	// オプションボタン
+			switch (LOWORD(wParam)) {
+				case ID_BUTTON_OPTION: // オプションボタン
 					return on_option_button(fp);
 
-				case ID_COMBO_LOGO:	// コンボボックス
-					switch(HIWORD(wParam)){
-						case CBN_SELCHANGE:	// 選択変更
+				case ID_COMBO_LOGO: // コンボボックス
+					switch (HIWORD(wParam)) {
+						case CBN_SELCHANGE: // 選択変更
 							change_param(fp);
 							return TRUE;
 					}
@@ -656,7 +649,7 @@ BOOL func_WndProc( HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, void *
 			}
 			break;
 
-		case WM_KEYUP:	// メインウィンドウへ送る
+		case WM_KEYUP: // メインウィンドウへ送る
 		case WM_KEYDOWN:
 		case WM_MOUSEWHEEL:
 			SendMessage(GetWindow(hwnd, GW_OWNER), message, wParam, lParam);
@@ -673,9 +666,9 @@ static void on_wm_filter_init(FILTER* fp)
 {
 	unsigned int i;
 
-	init_dialog(fp->hwnd,fp->dll_hinst);
+	init_dialog(fp->hwnd, fp->dll_hinst);
 	// コンボアイテムセット
-	for(i=0;i<logodata_n;i++)
+	for (i = 0; i < logodata_n; i++)
 		set_combo_item(logodata[i]);
 
 	// ロゴデータ受信メッセージ登録
@@ -695,64 +688,62 @@ static void on_wm_filter_exit(FILTER* fp)
 	void*  data;
 	LOGO_FILE_HEADER lfh;
 
-	if(lstrlen(logodata_file)==0){	// ロゴデータファイル名がないとき
-		if(!fp->exfunc->dlg_get_load_name(logodata_file,LDP_FILTER,LDP_DEFAULT)){
+	if (lstrlen(logodata_file) == 0) { // ロゴデータファイル名がないとき
+		if (!fp->exfunc->dlg_get_load_name(logodata_file,LDP_FILTER,LDP_DEFAULT)) {
 			// キャンセルされた
 			MessageBox(fp->hwnd,"ロゴデータは保存されません",filter_name,MB_OK|MB_ICONWARNING);
 			return;
 		}
-	}
-	else{	// ロゴデータファイル名があるとき
+	} else { // ロゴデータファイル名があるとき
 		// 存在を調べる
 		hFile = CreateFile(logodata_file, 0, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL,NULL);
 
-		if(hFile==INVALID_HANDLE_VALUE){	// みつからなかったとき
+		if (hFile == INVALID_HANDLE_VALUE) { // みつからなかったとき
 			MessageBox(fp->hwnd,"ロゴデータファイルが見つかりません",filter_name,MB_OK|MB_ICONWARNING);
-			if(!fp->exfunc->dlg_get_load_name(logodata_file,LDP_FILTER,LDP_DEFAULT)){
+			if (!fp->exfunc->dlg_get_load_name(logodata_file,LDP_FILTER,LDP_DEFAULT)) {
 				// キャンセルされた
 				MessageBox(fp->hwnd,"ロゴデータは保存されません",filter_name,MB_OK|MB_ICONWARNING);
 				return;
 			}
-		}
-		else
+		} else {
 			CloseHandle(hFile);
+		}
 	}
 
 	// 登録されているアイテムの数
-	num = SendMessage(dialog.cb_logo,CB_GETCOUNT,0,0);
+	num = SendMessage(dialog.cb_logo, CB_GETCOUNT, 0, 0);
 
 	// ファイルオープン
 	hFile = CreateFile(logodata_file,GENERIC_WRITE, 0, 0,CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
 	
-	SetFilePointer(hFile,0, 0, FILE_BEGIN);	// 先頭へ
+	SetFilePointer(hFile, 0, 0, FILE_BEGIN); // 先頭へ
 
 	// ヘッダ書き込み
-	ZeroMemory(&lfh,sizeof(lfh));
-	strcpy(lfh.str,LOGO_FILE_HEADER_STR);
+	ZeroMemory(&lfh, sizeof(lfh));
+	strcpy(lfh.str, LOGO_FILE_HEADER_STR);
 	dw = 0;
-	WriteFile(hFile,&lfh,sizeof(LOGO_FILE_HEADER),&dw,NULL);
-	if(dw!=32){	// 書き込み失敗
-		MessageBox(fp->hwnd,"ロゴデータ保存に失敗しました(1)",filter_name,MB_OK|MB_ICONERROR);
-	}
-	else{	// 成功
+	WriteFile(hFile, &lfh, sizeof(LOGO_FILE_HEADER), &dw, NULL);
+	if (dw != 32) {	// 書き込み失敗
+		MessageBox(fp->hwnd, "ロゴデータ保存に失敗しました(1)", filter_name, MB_OK|MB_ICONERROR);
+	} else { // 成功
 		n = 0;
 		// 各データ書き込み
-		for(i=0;i<num;i++){
+		for (i = 0; i < num; i++) {
 			dw = 0;
-			data = (void *)SendMessage(dialog.cb_logo,CB_GETITEMDATA,i,0);	// データのポインタ取得
-			WriteFile(hFile,data,LOGO_DATASIZE(data),&dw,NULL);
-			if(dw != LOGO_DATASIZE(data)){
-				MessageBox(fp->hwnd,"ロゴデータ保存に失敗しました(2)",filter_name,MB_OK|MB_ICONERROR);
+			data = (void *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0); // データのポインタ取得
+			WriteFile(hFile, data, LOGO_DATASIZE(data), &dw, NULL);
+			if (dw != LOGO_DATASIZE(data)) {
+				MessageBox(fp->hwnd,"ロゴデータ保存に失敗しました(2)", filter_name, MB_OK|MB_ICONERROR);
 				break;
 			}
 			n++;
 		}
 
 		lfh.logonum.l = SWAP_ENDIAN(n);
-		SetFilePointer(hFile,0, 0, FILE_BEGIN);	// 先頭へ
+		SetFilePointer(hFile,0, 0, FILE_BEGIN); // 先頭へ
 		dw = 0;
-		WriteFile(hFile,&lfh,sizeof(lfh),&dw,NULL);
-		if(dw!=sizeof(lfh))
+		WriteFile(hFile, &lfh, sizeof(lfh), &dw, NULL);
+		if (dw != sizeof(lfh))
 			MessageBox(fp->hwnd,"ロゴデータ保存に失敗しました(3)",filter_name,MB_OK|MB_ICONERROR);
 	}
 
@@ -767,7 +758,7 @@ static void on_wm_filter_exit(FILTER* fp)
 *		・コンボボックス
 *		・オプションボタン
 *-------------------------------------------------------------------*/
-static void init_dialog(HWND hwnd,HINSTANCE hinst)
+static void init_dialog(HWND hwnd, HINSTANCE hinst)
 {
 #define ITEM_Y (19+24*track_N+20*check_N)
 
@@ -793,7 +784,7 @@ static void init_dialog(HWND hwnd,HINSTANCE hinst)
 /*--------------------------------------------------------------------
 *	create_adj_exdata()		位置調整ロゴデータ作成
 *-------------------------------------------------------------------*/
-static BOOL create_adj_exdata(FILTER *fp,LOGO_HEADER *adjdata,const LOGO_HEADER *data)
+static BOOL create_adj_exdata(FILTER *fp, LOGO_HEADER *adjdata, const LOGO_HEADER *data)
 {
 	int  i,j;
 	int  w,h;
@@ -802,57 +793,57 @@ static BOOL create_adj_exdata(FILTER *fp,LOGO_HEADER *adjdata,const LOGO_HEADER 
 	LOGO_PIXEL *df;
 	LOGO_PIXEL *ex;
 
-	if(data == NULL)
+	if (data == NULL)
 		return FALSE;
 
 	// ロゴ名コピー
-	memcpy(adjdata->name,data->name,LOGO_MAX_NAME);
+	memcpy(adjdata->name, data->name, LOGO_MAX_NAME);
 
 	// 左上座標設定（位置調整後）
-	adjdata->x = data->x +(int)(fp->track[LOGO_X]-LOGO_XY_MIN)/4 + LOGO_XY_MIN/4;
-	adjdata->y = data->y +(int)(fp->track[LOGO_Y]-LOGO_XY_MIN)/4 + LOGO_XY_MIN/4;
+	adjdata->x = data->x + (int)(fp->track[LOGO_X]-LOGO_XY_MIN)/4 + LOGO_XY_MIN/4;
+	adjdata->y = data->y + (int)(fp->track[LOGO_Y]-LOGO_XY_MIN)/4 + LOGO_XY_MIN/4;
 
-	adjdata->w = w = data->w + 1;	// 1/4単位調整するため
-	adjdata->h = h = data->h + 1;	// 幅、高さを１増やす
+	adjdata->w = w = data->w + 1; // 1/4単位調整するため
+	adjdata->h = h = data->h + 1; // 幅、高さを１増やす
 
 	// LOGO_PIXELの先頭
 	(void *)df = (void *)(data +1);
 	(void *)ex = (void *)(adjdata +1);
 
-	adjx = (fp->track[LOGO_X]-LOGO_XY_MIN) % 4;	// 位置端数
+	adjx = (fp->track[LOGO_X]-LOGO_XY_MIN) % 4; // 位置端数
 	adjy = (fp->track[LOGO_Y]-LOGO_XY_MIN) % 4;
 
 	//----------------------------------------------------- 一番上の列
-	ex[0].dp_y  = df[0].dp_y *(4-adjx)*(4-adjy)/16;	// 左端
+	ex[0].dp_y  = df[0].dp_y *(4-adjx)*(4-adjy)/16; // 左端
 	ex[0].dp_cb = df[0].dp_cb*(4-adjx)*(4-adjy)/16;
 	ex[0].dp_cr = df[0].dp_cr*(4-adjx)*(4-adjy)/16;
 	ex[0].y  = df[0].y;
 	ex[0].cb = df[0].cb;
 	ex[0].cr = df[0].cr;
-	for(i=1;i<w-1;++i){									//中
+	for (i = 1; i < w-1; ++i) { //中
 		// Y
 		ex[i].dp_y = (df[i-1].dp_y*adjx*(4-adjy)
 							+ df[i].dp_y*(4-adjx)*(4-adjy)) /16;
-		if(ex[i].dp_y)
+		if (ex[i].dp_y)
 			ex[i].y  = (df[i-1].y*Abs(df[i-1].dp_y)*adjx*(4-adjy)
 					+ df[i].y * Abs(df[i].dp_y)*(4-adjx)*(4-adjy))
 				/(Abs(df[i-1].dp_y)*adjx*(4-adjy) + Abs(df[i].dp_y)*(4-adjx)*(4-adjy));
 		// Cb
 		ex[i].dp_cb = (df[i-1].dp_cb*adjx*(4-adjy)
 							+ df[i].dp_cb*(4-adjx)*(4-adjy)) /16;
-		if(ex[i].dp_cb)
+		if (ex[i].dp_cb)
 			ex[i].cb = (df[i-1].cb*Abs(df[i-1].dp_cb)*adjx*(4-adjy)
 					+ df[i].cb * Abs(df[i].dp_cb)*(4-adjx)*(4-adjy))
 				/ (Abs(df[i-1].dp_cb)*adjx*(4-adjy)+Abs(df[i].dp_cb)*(4-adjx)*(4-adjy));
 		// Cr
 		ex[i].dp_cr = (df[i-1].dp_cr*adjx*(4-adjy)
 							+ df[i].dp_cr*(4-adjx)*(4-adjy)) /16;
-		if(ex[i].dp_cr)
+		if (ex[i].dp_cr)
 			ex[i].cr = (df[i-1].cr*Abs(df[i-1].dp_cr)*adjx*(4-adjy)
 					+ df[i].cr * Abs(df[i].dp_cr)*(4-adjx)*(4-adjy))
 				/ (Abs(df[i-1].dp_cr)*adjx*(4-adjy)+Abs(df[i].dp_cr)*(4-adjx)*(4-adjy));
 	}
-	ex[i].dp_y  = df[i-1].dp_y * adjx *(4-adjy)/16;	// 右端
+	ex[i].dp_y  = df[i-1].dp_y * adjx *(4-adjy)/16; // 右端
 	ex[i].dp_cb = df[i-1].dp_cb* adjx *(4-adjy)/16;
 	ex[i].dp_cr = df[i-1].dp_cr* adjx *(4-adjy)/16;
 	ex[i].y  = df[i-1].y;
@@ -860,35 +851,35 @@ static BOOL create_adj_exdata(FILTER *fp,LOGO_HEADER *adjdata,const LOGO_HEADER 
 	ex[i].cr = df[i-1].cr;
 
 	//----------------------------------------------------------- 中
-	for(j=1;j<h-1;++j){
-		// 輝度Y		//---------------------- 左端
+	for (j = 1; j < h-1; ++j) {
+		// 輝度Y  //---------------------- 左端
 		ex[j*w].dp_y = (df[(j-1)*data->w].dp_y*(4-adjx)*adjy
 						+ df[j*data->w].dp_y*(4-adjx)*(4-adjy)) /16;
-		if(ex[j*w].dp_y)
+		if (ex[j*w].dp_y)
 			ex[j*w].y = (df[(j-1)*data->w].y*Abs(df[(j-1)*data->w].dp_y)*(4-adjx)*adjy
 						+ df[j*data->w].y*Abs(df[j*data->w].dp_y)*(4-adjx)*(4-adjy))
 				/ (Abs(df[(j-1)*data->w].dp_y)*(4-adjx)*adjy+Abs(df[j*data->w].dp_y)*(4-adjx)*(4-adjy));
 		// 色差(青)Cb
 		ex[j*w].dp_cb = (df[(j-1)*data->w].dp_cb*(4-adjx)*adjy
 						+ df[j*data->w].dp_cb*(4-adjx)*(4-adjy)) / 16;
-		if(ex[j*w].dp_cb)
+		if (ex[j*w].dp_cb)
 			ex[j*w].cb = (df[(j-1)*data->w].cb*Abs(df[(j-1)*data->w].dp_cb)*(4-adjx)*adjy
 						+ df[j*data->w].cb*Abs(df[j*data->w].dp_cb)*(4-adjx)*(4-adjy))
 				/ (Abs(df[(j-1)*data->w].dp_cb)*(4-adjx)*adjy+Abs(df[j*data->w].dp_cb)*(4-adjx)*(4-adjy));
 		// 色差(赤)Cr
 		ex[j*w].dp_cr = (df[(j-1)*data->w].dp_cr*(4-adjx)*adjy
 						+ df[j*data->w].dp_cr*(4-adjx)*(4-adjy)) / 16;
-		if(ex[j*w].dp_cr)
+		if (ex[j*w].dp_cr)
 			ex[j*w].cr = (df[(j-1)*data->w].cr*Abs(df[(j-1)*data->w].dp_cr)*(4-adjx)*adjy
 						+ df[j*data->w].cr*Abs(df[j*data->w].dp_cr)*(4-adjx)*(4-adjy))
 				/ (Abs(df[(j-1)*data->w].dp_cr)*(4-adjx)*adjy+Abs(df[j*data->w].dp_cr)*(4-adjx)*(4-adjy));
-		for(i=1;i<w-1;++i){	//------------------ 中
+		for (i = 1; i < w-1; ++i) { //------------------ 中
 			// Y
 			ex[j*w+i].dp_y = (df[(j-1)*data->w+i-1].dp_y*adjx*adjy
 							+ df[(j-1)*data->w+i].dp_y*(4-adjx)*adjy
 							+ df[j*data->w+i-1].dp_y*adjx*(4-adjy)
 							+ df[j*data->w+i].dp_y*(4-adjx)*(4-adjy) ) /16;
-			if(ex[j*w+i].dp_y)
+			if (ex[j*w+i].dp_y)
 				ex[j*w+i].y = (df[(j-1)*data->w+i-1].y*Abs(df[(j-1)*data->w+i-1].dp_y)*adjx*adjy
 							+ df[(j-1)*data->w+i].y*Abs(df[(j-1)*data->w+i].dp_y)*(4-adjx)*adjy
 							+ df[j*data->w+i-1].y*Abs(df[j*data->w+i-1].dp_y)*adjx*(4-adjy)
@@ -900,7 +891,7 @@ static BOOL create_adj_exdata(FILTER *fp,LOGO_HEADER *adjdata,const LOGO_HEADER 
 							+ df[(j-1)*data->w+i].dp_cb*(4-adjx)*adjy
 							+ df[j*data->w+i-1].dp_cb*adjx*(4-adjy)
 							+ df[j*data->w+i].dp_cb*(4-adjx)*(4-adjy) ) /16;
-			if(ex[j*w+i].dp_cb)
+			if (ex[j*w+i].dp_cb)
 				ex[j*w+i].cb = (df[(j-1)*data->w+i-1].cb*Abs(df[(j-1)*data->w+i-1].dp_cb)*adjx*adjy
 							+ df[(j-1)*data->w+i].cb*Abs(df[(j-1)*data->w+i].dp_cb)*(4-adjx)*adjy
 							+ df[j*data->w+i-1].cb*Abs(df[j*data->w+i-1].dp_cb)*adjx*(4-adjy)
@@ -912,7 +903,7 @@ static BOOL create_adj_exdata(FILTER *fp,LOGO_HEADER *adjdata,const LOGO_HEADER 
 							+ df[(j-1)*data->w+i].dp_cr*(4-adjx)*adjy
 							+ df[j*data->w+i-1].dp_cr*adjx*(4-adjy)
 							+ df[j*data->w+i].dp_cr*(4-adjx)*(4-adjy) ) /16;
-			if(ex[j*w+i].dp_cr)
+			if (ex[j*w+i].dp_cr)
 				ex[j*w+i].cr = (df[(j-1)*data->w+i-1].cr*Abs(df[(j-1)*data->w+i-1].dp_cr)*adjx*adjy
 							+ df[(j-1)*data->w+i].cr*Abs(df[(j-1)*data->w+i].dp_cr)*(4-adjx)*adjy
 							+ df[j*data->w+i-1].cr*Abs(df[j*data->w+i-1].dp_cr)*adjx*(4-adjy)
@@ -920,59 +911,59 @@ static BOOL create_adj_exdata(FILTER *fp,LOGO_HEADER *adjdata,const LOGO_HEADER 
 					/ (Abs(df[(j-1)*data->w+i-1].dp_cr)*adjx*adjy +Abs(df[(j-1)*data->w+i].dp_cr)*(4-adjx)*adjy
 						+ Abs(df[j*data->w+i-1].dp_cr)*adjx*(4-adjy)+Abs(df[j*data->w+i].dp_cr)*(4-adjx)*(4-adjy));
 		}
-		// Y		//----------------------- 右端
+		// Y //----------------------- 右端
 		ex[j*w+i].dp_y = (df[(j-1)*data->w+i-1].dp_y*adjx*adjy
 						+ df[j*data->w+i-1].dp_y*adjx*(4-adjy)) / 16;
-		if(ex[j*w+i].dp_y)
+		if (ex[j*w+i].dp_y)
 			ex[j*w+i].y = (df[(j-1)*data->w+i-1].y*Abs(df[(j-1)*data->w+i-1].dp_y)*adjx*adjy
 						+ df[j*data->w+i-1].y*Abs(df[j*data->w+i-1].dp_y)*adjx*(4-adjy))
 				/ (Abs(df[(j-1)*data->w+i-1].dp_y)*adjx*adjy+Abs(df[j*data->w+i-1].dp_y)*adjx*(4-adjy));
 		// Cb
 		ex[j*w+i].dp_cb = (df[(j-1)*data->w+i-1].dp_cb*adjx*adjy
 						+ df[j*data->w+i-1].dp_cb*adjx*(4-adjy)) / 16;
-		if(ex[j*w+i].dp_cb)
+		if (ex[j*w+i].dp_cb)
 			ex[j*w+i].cb = (df[(j-1)*data->w+i-1].cb*Abs(df[(j-1)*data->w+i-1].dp_cb)*adjx*adjy
 						+ df[j*data->w+i-1].cb*Abs(df[j*data->w+i-1].dp_cb)*adjx*(4-adjy))
 				/ (Abs(df[(j-1)*data->w+i-1].dp_cb)*adjx*adjy+Abs(df[j*data->w+i-1].dp_cb)*adjx*(4-adjy));
 		// Cr
 		ex[j*w+i].dp_cr = (df[(j-1)*data->w+i-1].dp_cr*adjx*adjy
 						+ df[j*data->w+i-1].dp_cr*adjx*(4-adjy)) / 16;
-		if(ex[j*w+i].dp_cr)
+		if (ex[j*w+i].dp_cr)
 			ex[j*w+i].cr = (df[(j-1)*data->w+i-1].cr*Abs(df[(j-1)*data->w+i-1].dp_cr)*adjx*adjy
 						+ df[j*data->w+i-1].cr*Abs(df[j*data->w+i-1].dp_cr)*adjx*(4-adjy))
 				/ (Abs(df[(j-1)*data->w+i-1].dp_cr)*adjx*adjy+Abs(df[j*data->w+i-1].dp_cr)*adjx*(4-adjy));
 	}
 	//--------------------------------------------------------- 一番下
-	ex[j*w].dp_y  = df[(j-1)*data->w].dp_y *(4-adjx)*adjy /16;	// 左端
+	ex[j*w].dp_y  = df[(j-1)*data->w].dp_y *(4-adjx)*adjy /16; // 左端
 	ex[j*w].dp_cb = df[(j-1)*data->w].dp_cb*(4-adjx)*adjy /16;
 	ex[j*w].dp_cr = df[(j-1)*data->w].dp_cr*(4-adjx)*adjy /16;
 	ex[j*w].y  = df[(j-1)*data->w].y;
 	ex[j*w].cb = df[(j-1)*data->w].cb;
 	ex[j*w].cr = df[(j-1)*data->w].cr;
-	for(i=1;i<w-1;++i){		// 中
+	for (i = 1; i < w-1; ++i) { // 中
 		// Y
 		ex[j*w+i].dp_y = (df[(j-1)*data->w+i-1].dp_y * adjx * adjy
 								+ df[(j-1)*data->w+i].dp_y * (4-adjx) *adjy) /16;
-		if(ex[j*w+i].dp_y)
+		if (ex[j*w+i].dp_y)
 			ex[j*w+i].y = (df[(j-1)*data->w+i-1].y*Abs(df[(j-1)*data->w+i-1].dp_y)*adjx*adjy
 						+ df[(j-1)*data->w+i].y*Abs(df[(j-1)*data->w+i].dp_y)*(4-adjx)*adjy)
 				/ (Abs(df[(j-1)*data->w+i-1].dp_y)*adjx*adjy +Abs(df[(j-1)*data->w+i].dp_y)*(4-adjx)*adjy);
 		// Cb
 		ex[j*w+i].dp_cb = (df[(j-1)*data->w+i-1].dp_cb * adjx * adjy
 								+ df[(j-1)*data->w+i].dp_cb * (4-adjx) *adjy) /16;
-		if(ex[j*w+i].dp_cb)
+		if (ex[j*w+i].dp_cb)
 			ex[j*w+i].cb = (df[(j-1)*data->w+i-1].cb*Abs(df[(j-1)*data->w+i-1].dp_cb)*adjx*adjy
 						+ df[(j-1)*data->w+i].cb*Abs(df[(j-1)*data->w+i].dp_cb)*(4-adjx)*adjy )
 				/ (Abs(df[(j-1)*data->w+i-1].dp_cb)*adjx*adjy +Abs(df[(j-1)*data->w+i].dp_cb)*(4-adjx)*adjy);
 		// Cr
 		ex[j*w+i].dp_cr = (df[(j-1)*data->w+i-1].dp_cr * adjx * adjy
 								+ df[(j-1)*data->w+i].dp_cr * (4-adjx) *adjy) /16;
-		if(ex[j*w+i].dp_cr)
+		if (ex[j*w+i].dp_cr)
 			ex[j*w+i].cr = (df[(j-1)*data->w+i-1].cr*Abs(df[(j-1)*data->w+i-1].dp_cr)*adjx*adjy
 						+ df[(j-1)*data->w+i].cr*Abs(df[(j-1)*data->w+i].dp_cr)*(4-adjx)*adjy)
 				/ (Abs(df[(j-1)*data->w+i-1].dp_cr)*adjx*adjy +Abs(df[(j-1)*data->w+i].dp_cr)*(4-adjx)*adjy);
 	}
-	ex[j*w+i].dp_y  = df[(j-1)*data->w+i-1].dp_y *adjx*adjy /16;	// 右端
+	ex[j*w+i].dp_y  = df[(j-1)*data->w+i-1].dp_y *adjx*adjy /16; // 右端
 	ex[j*w+i].dp_cb = df[(j-1)*data->w+i-1].dp_cb*adjx*adjy /16;
 	ex[j*w+i].dp_cr = df[(j-1)*data->w+i-1].dp_cr*adjx*adjy /16;
 	ex[j*w+i].y  = df[(j-1)*data->w+i-1].y;
@@ -992,12 +983,12 @@ static void update_cb_logo(char *name)
 	int num;
 
 	// コンボボックス検索
-	num = SendMessage(dialog.cb_logo,CB_FINDSTRING,-1,(WPARAM)name);
+	num = SendMessage(dialog.cb_logo, CB_FINDSTRING, -1, (WPARAM)name);
 
-	if(num == CB_ERR)	// みつからなかった
+	if (num == CB_ERR) // みつからなかった
 		num = -1;
 
-	SendMessage(dialog.cb_logo,CB_SETCURSEL,num,0);	// カーソルセット
+	SendMessage(dialog.cb_logo, CB_SETCURSEL, num, 0); // カーソルセット
 }
 
 /*--------------------------------------------------------------------
@@ -1009,17 +1000,17 @@ static void change_param(FILTER* fp)
 	LRESULT ret;
 
 	// 選択番号取得
-	ret = SendMessage(dialog.cb_logo,CB_GETCURSEL,0,0);
-	ret = SendMessage(dialog.cb_logo,CB_GETITEMDATA,ret,0);
+	ret = SendMessage(dialog.cb_logo, CB_GETCURSEL, 0, 0);
+	ret = SendMessage(dialog.cb_logo, CB_GETITEMDATA, ret, 0);
 
-	if(ret!=CB_ERR)
-		memcpy(ex_data,(void *)ret,LOGO_MAX_NAME);	// ロゴ名をコピー
+	if (ret != CB_ERR)
+		memcpy(ex_data, (void *)ret, LOGO_MAX_NAME); // ロゴ名をコピー
 
 	// 開始･フェードイン･アウト･終了の初期値があるときはパラメタに反映
 	ret = find_logo((char *)ret);
-	if(ret<0) return;
+	if (ret < 0) return;
 
-	if(logodata[ret]->fi || logodata[ret]->fo || logodata[ret]->st || logodata[ret]->ed){
+	if (logodata[ret]->fi || logodata[ret]->fo || logodata[ret]->st || logodata[ret]->ed) {
 		fp->track[LOGO_STRT] = logodata[ret]->st;
 		fp->track[LOGO_FIN]  = logodata[ret]->fi;
 		fp->track[LOGO_FOUT] = logodata[ret]->fo;
@@ -1038,11 +1029,11 @@ static int set_combo_item(void* data)
 	int num;
 
 	// コンボボックスアイテム数
-	num = SendMessage(dialog.cb_logo,CB_GETCOUNT,0,0);
+	num = SendMessage(dialog.cb_logo, CB_GETCOUNT, 0, 0);
 
 	// 最後尾に追加
-	SendMessage(dialog.cb_logo,CB_INSERTSTRING,num,(LPARAM)data);
-	SendMessage(dialog.cb_logo,CB_SETITEMDATA,num,(LPARAM)data);
+	SendMessage(dialog.cb_logo, CB_INSERTSTRING, num, (LPARAM)data);
+	SendMessage(dialog.cb_logo, CB_SETITEMDATA, num, (LPARAM)data);
 
 	return num;
 }
@@ -1055,17 +1046,17 @@ static void del_combo_item(int num)
 	void *ptr;
 	unsigned int i;
 
-	ptr = (void *)SendMessage(dialog.cb_logo,CB_GETITEMDATA,num,0);
-	if(ptr) free(ptr);
+	ptr = (void *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, num, 0);
+	if (ptr) free(ptr);
 
 	// ロゴデータ配列再構成
-	logodata_n = SendMessage(dialog.cb_logo,CB_GETCOUNT,0,0);
-	logodata = realloc(logodata,logodata_n*sizeof(logodata));
+	logodata_n = SendMessage(dialog.cb_logo, CB_GETCOUNT, 0, 0);
+	logodata = realloc(logodata, logodata_n * sizeof(logodata));
 
-	for(i=0;i<logodata_n;i++)
-		logodata[i] = (void *)SendMessage(dialog.cb_logo,CB_GETITEMDATA,i,0);
+	for (i = 0; i < logodata_n; i++)
+		logodata[i] = (void *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0);
 
-	SendMessage(dialog.cb_logo,CB_DELETESTRING,num,0);
+	SendMessage(dialog.cb_logo, CB_DELETESTRING, num, 0);
 }
 
 /*--------------------------------------------------------------------
@@ -1074,7 +1065,7 @@ static void del_combo_item(int num)
 * 		コンボボックスにセット
 * 		拡張領域にコピー
 *-------------------------------------------------------------------*/
-static void read_logo_pack(char *fname,FILTER *fp)
+static void read_logo_pack(char *fname, FILTER *fp)
 {
 	HANDLE hFile;
 	LOGO_FILE_HEADER lfh;
@@ -1089,11 +1080,11 @@ static void read_logo_pack(char *fname,FILTER *fp)
 	// ファイルオープン
 	hFile = CreateFile(fname,GENERIC_READ, 0, 0, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
 
-	if(hFile==INVALID_HANDLE_VALUE){
-		MessageBox(fp->hwnd,"ロゴデータファイルが見つかりません",filter_name,MB_OK|MB_ICONERROR);
+	if (hFile == INVALID_HANDLE_VALUE) {
+		MessageBox(fp->hwnd, "ロゴデータファイルが見つかりません", filter_name, MB_OK|MB_ICONERROR);
 		return;
 	}
-	if(GetFileSize(hFile, NULL)<sizeof(LOGO_FILE_HEADER)){	// サイズ確認
+	if (GetFileSize(hFile, NULL) < sizeof(LOGO_FILE_HEADER)) { // サイズ確認
 		CloseHandle(hFile);
 		MessageBox(fp->hwnd,"ロゴデータファイルが不正です",filter_name,MB_OK|MB_ICONERROR);
 		return;
@@ -1106,13 +1097,13 @@ static void read_logo_pack(char *fname,FILTER *fp)
 	logodata = NULL;
 	logonum = SWAP_ENDIAN(lfh.logonum.l);
 
-	for(i=0;i<logonum;i++){
+	for (i = 0; i < logonum; i++) {
 
 		// LOGO_HEADER 読み込み
 		readed = 0;
-		ReadFile(hFile,&lgh,sizeof(LOGO_HEADER),&readed, NULL);
-		if(readed!=sizeof(LOGO_HEADER)){
-			MessageBox(fp->hwnd,"ロゴデータの読み込みに失敗しました",filter_name,MB_OK|MB_ICONERROR);
+		ReadFile(hFile, &lgh, sizeof(LOGO_HEADER), &readed, NULL);
+		if (readed != sizeof(LOGO_HEADER)) {
+			MessageBox(fp->hwnd, "ロゴデータの読み込みに失敗しました", filter_name, MB_OK|MB_ICONERROR);
 			break;
 		}
 
@@ -1120,22 +1111,21 @@ static void read_logo_pack(char *fname,FILTER *fp)
 //
 //		// 同名ロゴがあるか
 //		same = find_logodata(lgh.name);
-//		if(same>0){
+//		if (same>0) {
 //			wsprintf(message,"同名のロゴがあります\n置き換えますか？\n\n%s",lgh.name);
-//			if(MessageBox(fp->hwnd,message,filter_name,MB_YESNO|MB_ICONQUESTION)==IDYES){
+//			if (MessageBox(fp->hwnd, message, filter_name, MB_YESNO|MB_ICONQUESTION) == IDYES) {
 //				// 削除
 //				del_combo_item(same);
-//			}
-//			else{	// 上書きしない
+//			} else {	// 上書きしない
 //				// ファイルポインタを進める
-//				SetFilePointer(hFile,LOGO_PIXELSIZE(&lgh), 0, FILE_CURRENT);
+//				SetFilePointer(hFile, LOGO_PIXELSIZE(&lgh), 0, FILE_CURRENT);
 //				continue;
 //			}
 //		}
 
 		// メモリ確保
 		data = malloc(LOGO_DATASIZE(&lgh));
-		if(data==NULL){
+		if (data == NULL) {
 			MessageBox(fp->hwnd,"メモリが足りません",filter_name,MB_OK|MB_ICONERROR);
 			break;
 		}
@@ -1147,25 +1137,25 @@ static void read_logo_pack(char *fname,FILTER *fp)
 
 		// LOGO_PIXEL読み込み
 		readed = 0;
-		ReadFile(hFile,(void *)ptr,LOGO_PIXELSIZE(&lgh),&readed,NULL);
+		ReadFile(hFile, (void *)ptr, LOGO_PIXELSIZE(&lgh), &readed, NULL);
 
-		if(LOGO_PIXELSIZE(&lgh)>readed){	// 尻切れ対策
+		if (LOGO_PIXELSIZE(&lgh) > readed) { // 尻切れ対策
 			readed -= readed % 2;
 			ptr    += readed;
-			memset((void *)ptr,0,LOGO_PIXELSIZE(&lgh)-readed);
+			memset((void *)ptr,0,LOGO_PIXELSIZE(&lgh) - readed);
 		}
 
 		// logodataポインタ配列に追加
 		logodata_n++;
-		logodata = realloc(logodata,logodata_n*sizeof(logodata));
+		logodata = realloc(logodata, logodata_n * sizeof(logodata));
 		logodata[logodata_n-1] = data;
 	}
 
 	CloseHandle(hFile);
 
-	if(logodata_n){
+	if (logodata_n) {
 		// 拡張データ設定
-		memcpy(ex_data,logodata[0],LOGO_MAX_NAME);
+		memcpy(ex_data, logodata[0], LOGO_MAX_NAME);
 	}
 }
 
@@ -1182,22 +1172,22 @@ static BOOL on_option_button(FILTER* fp)
 	optfp = fp;
 	hcb_logo = dialog.cb_logo;
 
-	EnableWindow(dialog.bt_opt,FALSE);	// オプションボタン無効化
+	EnableWindow(dialog.bt_opt, FALSE); // オプションボタン無効化
 
 	// オプションダイアログ表示（モーダルフレーム）
-	res = DialogBox(fp->dll_hinst,"OPT_DLG",GetWindow(fp->hwnd, GW_OWNER),OptDlgProc);
+	res = DialogBox(fp->dll_hinst, "OPT_DLG", GetWindow(fp->hwnd, GW_OWNER), OptDlgProc);
 
-	EnableWindow(dialog.bt_opt,TRUE);	// 有効に戻す
+	EnableWindow(dialog.bt_opt, TRUE); // 有効に戻す
 
-	if(res==IDOK){	// OKボタン
-		logodata_n = SendMessage(dialog.cb_logo,CB_GETCOUNT,0,0);
+	if (res == IDOK) { // OKボタン
+		logodata_n = SendMessage(dialog.cb_logo, CB_GETCOUNT, 0, 0);
 
 		// logodata配列再構成
-		logodata = realloc(logodata,logodata_n*sizeof(logodata));
-		for(i=0;i<logodata_n;i++)
-			logodata[i] = (void *)SendMessage(dialog.cb_logo,CB_GETITEMDATA,i,0);
+		logodata = realloc(logodata, logodata_n * sizeof(logodata));
+		for (i = 0; i < logodata_n; i++)
+			logodata[i] = (void *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0);
 
-		if(logodata_n)	// 拡張データ初期値設定
+		if (logodata_n)	// 拡張データ初期値設定
 			fp->ex_data_def = logodata[0];
 		else
 			fp->ex_data_def = NULL;
@@ -1209,7 +1199,7 @@ static BOOL on_option_button(FILTER* fp)
 /*--------------------------------------------------------------------
 *	set_sended_data()		受信したロゴデータをセット
 *-------------------------------------------------------------------*/
-static void set_sended_data(void* data,FILTER* fp)
+static void set_sended_data(void* data, FILTER* fp)
 {
 	static char message[256];
 	void *ptr;
@@ -1219,37 +1209,37 @@ static void set_sended_data(void* data,FILTER* fp)
 	lgh = (LOGO_HEADER *)data;
 
 	// 同名のロゴがあるかどうか
-	same = SendMessage(dialog.cb_logo,CB_FINDSTRING,-1,(WPARAM)lgh->name);
-	if(same!=CB_ERR){
-		wsprintf(message,"同名のロゴがあります\n置き換えますか？\n\n%s",data);
-		if(MessageBox(fp->hwnd,message,filter_name,MB_YESNO|MB_ICONQUESTION)!=IDYES)
-			return;	// 上書きしない
+	same = SendMessage(dialog.cb_logo, CB_FINDSTRING, -1, (WPARAM)lgh->name);
+	if (same != CB_ERR) {
+		wsprintf(message,"同名のロゴがあります\n置き換えますか？\n\n%s", data);
+		if (MessageBox(fp->hwnd, message, filter_name, MB_YESNO|MB_ICONQUESTION) != IDYES)
+			return; // 上書きしない
 
 		del_combo_item(same);
 	}
 
 	ptr = malloc(LOGO_DATASIZE(lgh));
-	if(ptr==NULL){
-		MessageBox(fp->hwnd,"メモリが確保できませんでした",filter_name,MB_OK|MB_ICONERROR);
+	if (ptr == NULL) {
+		MessageBox(fp->hwnd,"メモリが確保できませんでした", filter_name, MB_OK|MB_ICONERROR);
 		return;
 	}
 
-	memcpy(ptr,data,LOGO_DATASIZE(data));
+	memcpy(ptr, data, LOGO_DATASIZE(data));
 
 	logodata_n++;
-	logodata = realloc(logodata,logodata_n*sizeof(logodata));
+	logodata = realloc(logodata,logodata_n * sizeof(logodata));
 
 	logodata[logodata_n-1] = ptr;
 	set_combo_item(ptr);
 
-	lstrcpy(fp->ex_data_ptr,ptr);	// 拡張領域にロゴ名をコピー
+	lstrcpy(fp->ex_data_ptr, ptr); // 拡張領域にロゴ名をコピー
 }
 
 
 /*--------------------------------------------------------------------
 *	on_avisynth_button()	AviSynthボタン動作
 *-------------------------------------------------------------------*/
-static BOOL on_avisynth_button(FILTER* fp,void *editp)
+static BOOL on_avisynth_button(FILTER* fp, void *editp)
 {
 	static char str[STRDLG_MAXSTR];
 	int  s,e;
@@ -1257,40 +1247,39 @@ static BOOL on_avisynth_button(FILTER* fp,void *editp)
 	// スクリプト生成
 	wsprintf(str,"%sLOGO(logofile=\"%s\",\r\n"
 	             "\\           logoname=\"%s\"",
-				(fp->check[0]? "Add":"Erase"),logodata_file,fp->ex_data_ptr);
+				(fp->check[0]? "Add":"Erase"), logodata_file, fp->ex_data_ptr);
 
-	if(fp->track[LOGO_X] || fp->track[LOGO_Y])
-		wsprintf(str,"%s,\r\n\\           pos_x=%d, pos_y=%d",
-					str,fp->track[LOGO_X],fp->track[LOGO_Y]);
+	if (fp->track[LOGO_X] || fp->track[LOGO_Y])
+		wsprintf(str, "%s,\r\n\\           pos_x=%d, pos_y=%d",
+					str, fp->track[LOGO_X], fp->track[LOGO_Y]);
 
-	if(fp->track[LOGO_YDP]!=128 || fp->track[LOGO_PY] || fp->track[LOGO_CB] || fp->track[LOGO_CR])
-		wsprintf(str,"%s,\r\n\\           depth=%d, yc_y=%d, yc_u=%d, yc_v=%d",
-					str,fp->track[LOGO_YDP],fp->track[LOGO_PY],fp->track[LOGO_CB],fp->track[LOGO_CR]);
+	if (fp->track[LOGO_YDP]!=128 || fp->track[LOGO_PY] || fp->track[LOGO_CB] || fp->track[LOGO_CR])
+		wsprintf(str, "%s,\r\n\\           depth=%d, yc_y=%d, yc_u=%d, yc_v=%d",
+					str, fp->track[LOGO_YDP], fp->track[LOGO_PY], fp->track[LOGO_CB], fp->track[LOGO_CR]);
 
 
-	if(fp->exfunc->get_frame_n(editp)){	// 画像が読み込まれているとき
-		fp->exfunc->get_select_frame(editp,&s,&e);	// 選択範囲取得
-		wsprintf(str,"%s,\r\n\\           start=%d",str, s+fp->track[LOGO_STRT]);
+	if (fp->exfunc->get_frame_n(editp)) { // 画像が読み込まれているとき
+		fp->exfunc->get_select_frame(editp, &s, &e); // 選択範囲取得
+		wsprintf(str, "%s,\r\n\\           start=%d", str, s + fp->track[LOGO_STRT]);
 
-		if(fp->track[LOGO_FIN] || fp->track[LOGO_FOUT])
-			wsprintf(str,"%s, fadein=%d, fadeout=%d",str,fp->track[LOGO_FIN],fp->track[LOGO_FOUT]);
+		if (fp->track[LOGO_FIN] || fp->track[LOGO_FOUT])
+			wsprintf(str, "%s, fadein=%d, fadeout=%d", str, fp->track[LOGO_FIN], fp->track[LOGO_FOUT]);
 
-		wsprintf(str,"%s, end=%d",str,e-fp->track[LOGO_END]);
+		wsprintf(str, "%s, end=%d", str, e - fp->track[LOGO_END]);
+	} else {
+		if (fp->track[LOGO_FIN] || fp->track[LOGO_FOUT])
+			wsprintf(str, "%s,\r\n\\           fadein=%d, fadeout=%d", str, fp->track[LOGO_FIN], fp->track[LOGO_FOUT]);
 	}
-	else{
-		if(fp->track[LOGO_FIN] || fp->track[LOGO_FOUT])
-			wsprintf(str,"%s,\r\n\\           fadein=%d, fadeout=%d",str,fp->track[LOGO_FIN],fp->track[LOGO_FOUT]);
-	}
 
-	wsprintf(str,"%s)\r\n",str);
+	wsprintf(str,"%s)\r\n", str);
 
 	
-	EnableWindow(dialog.bt_synth,FALSE);	// synthボタン無効化
+	EnableWindow(dialog.bt_synth, FALSE); // synthボタン無効化
 
 	// ダイアログ呼び出し
-	DialogBoxParam(fp->dll_hinst,"STR_DLG",GetWindow(fp->hwnd,GW_OWNER),StrDlgProc,(LPARAM)str);
+	DialogBoxParam(fp->dll_hinst, "STR_DLG", GetWindow(fp->hwnd, GW_OWNER), StrDlgProc, (LPARAM)str);
 
-	EnableWindow(dialog.bt_synth,TRUE);	// synthボタン無効化解除
+	EnableWindow(dialog.bt_synth, TRUE); // synthボタン無効化解除
 
 	return TRUE;
 }
@@ -1314,55 +1303,55 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL,DWORD fdwReason,LPVOID lpvReserved)
   char ini_name[MAX_PATH];
   int i;
 
-  switch(fdwReason){
-    case DLL_PROCESS_ATTACH:	// 開始時
+  switch (fdwReason) {
+    case DLL_PROCESS_ATTACH: // 開始時
       // iniファイル名を取得
       GetModuleFileName(hinstDLL,ini_name,MAX_PATH-4);
       strcat(ini_name,".ini");
 
       // フィルタ名
       strings[0] = malloc(FILTER_NAME_MAX);
-      if(strings[0]==NULL) break;
-      GetPrivateProfileString("string","name",filter.name,strings[0],FILTER_NAME_MAX,ini_name);
+      if (strings[0] == NULL) break;
+      GetPrivateProfileString("string", "name", filter.name, strings[0], FILTER_NAME_MAX, ini_name);
       filter.name = strings[0];
 
       // トラック名
-      for(i=0;i<TRACK_N;i++){
+      for (i = 0; i < TRACK_N; i++) {
         strings[i+1] = malloc(FILTER_TRACK_MAX);
-        if(strings[i+1]==NULL) break;
-        wsprintf(key,"track%d",i);
-        GetPrivateProfileString("string",key,filter.track_name[i],strings[i+1],FILTER_TRACK_MAX,ini_name);
+        if (strings[i+1] == NULL) break;
+        wsprintf(key, "track%d", i);
+        GetPrivateProfileString("string", key, filter.track_name[i], strings[i+1], FILTER_TRACK_MAX, ini_name);
         filter.track_name[i] = strings[i+1];
       }
       // トラック デフォルト値
-      for(i=0;i<TRACK_N;i++){
-        wsprintf(key,"track%d_def",i);
-        filter.track_default[i] = GetPrivateProfileInt("int",key,filter.track_default[i],ini_name);
+      for (i = 0; i < TRACK_N; i++) {
+        wsprintf(key, "track%d_def", i);
+        filter.track_default[i] = GetPrivateProfileInt("int", key,filter.track_default[i], ini_name);
       }
       // トラック 最小値
-      for(i=0;i<TRACK_N;i++){
-        wsprintf(key,"track%d_min",i);
-        filter.track_s[i] = GetPrivateProfileInt("int",key,filter.track_s[i],ini_name);
+      for (i = 0; i < TRACK_N; i++) {
+        wsprintf(key, "track%d_min", i);
+        filter.track_s[i] = GetPrivateProfileInt("int", key, filter.track_s[i], ini_name);
       }
       // トラック 最大値
-      for(i=0;i<TRACK_N;i++){
+      for (i = 0; i < TRACK_N; i++) {
         wsprintf(key,"track%d_max",i);
-        filter.track_e[i] = GetPrivateProfileInt("int",key,filter.track_e[i],ini_name);
+        filter.track_e[i] = GetPrivateProfileInt("int", key, filter.track_e[i], ini_name);
       }
 
       // チェック名
-      for(i=0;i<CHECK_N;i++){
+      for (i = 0; i < CHECK_N; i++){
         strings[i+TRACK_N+1] = malloc(FILTER_CHECK_MAX);
-        if(strings[i+TRACK_N+1]==NULL) break;
-        wsprintf(key,"check%d",i);
-        GetPrivateProfileString("string",key,filter.check_name[i],strings[i+TRACK_N+1],FILTER_CHECK_MAX,ini_name);
+        if (strings[i+TRACK_N+1] == NULL) break;
+        wsprintf(key, "check%d", i);
+        GetPrivateProfileString("string", key,filter.check_name[i], strings[i+TRACK_N+1], FILTER_CHECK_MAX, ini_name);
         filter.check_name[i] = strings[i+TRACK_N+1];
       }
       break;
 
-    case DLL_PROCESS_DETACH:	// 終了時
+    case DLL_PROCESS_DETACH: // 終了時
       // stringsを破棄
-      for(i=0;i<1+TRACK_N+CHECK_N && strings[i];i++)
+      for (i = 0; i < 1+TRACK_N+CHECK_N && strings[i]; i++)
         free(strings[i]);
       break;
 

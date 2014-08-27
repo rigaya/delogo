@@ -24,24 +24,24 @@ BOOL on_IDOK(HWND hdlg);
 /*====================================================================
 * 	EditDlgProc()		コールバックプロシージャ
 *===================================================================*/
-BOOL CALLBACK EditDlgProc(HWND hdlg,UINT msg,WPARAM wParam,LPARAM lParam)
+BOOL CALLBACK EditDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	switch(msg){
+	switch (msg) {
 		case WM_INITDIALOG:
-			owner = GetWindow(hdlg,GW_OWNER);
+			owner = GetWindow(hdlg, GW_OWNER);
 			list_n = (int)lParam;
 			on_wm_initdialog(hdlg);
 			break;
 
 		case WM_COMMAND:
-			switch(LOWORD(wParam)){
+			switch (LOWORD(wParam)) {
 				case IDOK:
-					if(on_IDOK(hdlg))
-						EndDialog(hdlg,LOWORD(wParam));
+					if (on_IDOK(hdlg))
+						EndDialog(hdlg, LOWORD(wParam));
 					break;
 
 				case IDCANCEL:
-					EndDialog(hdlg,LOWORD(wParam));
+					EndDialog(hdlg, LOWORD(wParam));
 					break;
 			}
 	}
@@ -59,34 +59,34 @@ void on_wm_initdialog(HWND hdlg)
 	LOGO_HEADER* lp;
 
 	// ロゴデータ取得
-	lp = (LOGO_HEADER *)SendDlgItemMessage(owner,IDC_LIST,LB_GETITEMDATA,list_n,0);
+	lp = (LOGO_HEADER *)SendDlgItemMessage(owner, IDC_LIST, LB_GETITEMDATA, list_n, 0);
 
 	// エディットボックス
-	SendDlgItemMessage(hdlg,ID_EDIT_NAME,EM_SETLIMITTEXT,LOGO_MAX_NAME-1,0);
-	SendDlgItemMessage(hdlg,ID_EDIT_START, EM_SETLIMITTEXT, 4,0);
-	SendDlgItemMessage(hdlg,ID_EDIT_END,   EM_SETLIMITTEXT, 4,0);
-	SendDlgItemMessage(hdlg,ID_EDIT_FIN,   EM_SETLIMITTEXT, 3,0);
-	SendDlgItemMessage(hdlg,ID_EDIT_FOUT,  EM_SETLIMITTEXT, 3,0);
-	SendDlgItemMessage(hdlg,ID_EDIT_SPINST, UDM_SETRANGE, 0, LOGO_STED_MAX);
-	SendDlgItemMessage(hdlg,ID_EDIT_SPINED, UDM_SETRANGE, 0, LOGO_STED_MAX);
-	SendDlgItemMessage(hdlg,ID_EDIT_SPINFI, UDM_SETRANGE, 0, LOGO_FADE_MAX);
-	SendDlgItemMessage(hdlg,ID_EDIT_SPINFO, UDM_SETRANGE, 0, LOGO_FADE_MAX);
-	SendDlgItemMessage(hdlg,ID_EDIT_X, EM_SETLIMITTEXT, 5,0);
-	SendDlgItemMessage(hdlg,ID_EDIT_Y, EM_SETLIMITTEXT, 5,0);
-	SendDlgItemMessage(hdlg,ID_EDIT_SPINX, UDM_SETRANGE, 0, 0x7fff);	// signed 16bitの上限
-	SendDlgItemMessage(hdlg,ID_EDIT_SPINY, UDM_SETRANGE, 0, 0x7fff);
+	SendDlgItemMessage(hdlg, ID_EDIT_NAME,   EM_SETLIMITTEXT, LOGO_MAX_NAME-1, 0);
+	SendDlgItemMessage(hdlg, ID_EDIT_START,  EM_SETLIMITTEXT, 4,               0);
+	SendDlgItemMessage(hdlg, ID_EDIT_END,    EM_SETLIMITTEXT, 4,               0);
+	SendDlgItemMessage(hdlg, ID_EDIT_FIN,    EM_SETLIMITTEXT, 3,               0);
+	SendDlgItemMessage(hdlg, ID_EDIT_FOUT,   EM_SETLIMITTEXT, 3,               0);
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINST, UDM_SETRANGE,    0,   LOGO_STED_MAX);
+	SendDlgItemMessage(hdlg ,ID_EDIT_SPINED, UDM_SETRANGE,    0,   LOGO_STED_MAX);
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINFI, UDM_SETRANGE,    0,   LOGO_FADE_MAX);
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINFO, UDM_SETRANGE,    0,   LOGO_FADE_MAX);
+	SendDlgItemMessage(hdlg, ID_EDIT_X,      EM_SETLIMITTEXT, 5,               0);
+	SendDlgItemMessage(hdlg, ID_EDIT_Y,      EM_SETLIMITTEXT, 5,               0);
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINX,  UDM_SETRANGE,    0,          0x7fff); // signed 16bitの上限
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINY,  UDM_SETRANGE,    0,          0x7fff);
 
-	SetDlgItemText(hdlg,ID_EDIT_NAME,lp->name);
-	SetDlgItemInt(hdlg,ID_EDIT_START,lp->st,FALSE);
-	SetDlgItemInt(hdlg,ID_EDIT_END  ,lp->ed,FALSE);
-	SetDlgItemInt(hdlg,ID_EDIT_FIN  ,lp->fi,FALSE);
-	SetDlgItemInt(hdlg,ID_EDIT_FOUT ,lp->fo,FALSE);
-	SetDlgItemInt(hdlg,ID_EDIT_X,lp->x,FALSE);
-	SetDlgItemInt(hdlg,ID_EDIT_Y,lp->y,FALSE);
+	SetDlgItemText(hdlg, ID_EDIT_NAME,  lp->name);
+	SetDlgItemInt(hdlg,  ID_EDIT_START, lp->st, FALSE);
+	SetDlgItemInt(hdlg,  ID_EDIT_END,   lp->ed, FALSE);
+	SetDlgItemInt(hdlg,  ID_EDIT_FIN,   lp->fi, FALSE);
+	SetDlgItemInt(hdlg,  ID_EDIT_FOUT,  lp->fo, FALSE);
+	SetDlgItemInt(hdlg,  ID_EDIT_X,     lp->x,  FALSE);
+	SetDlgItemInt(hdlg,  ID_EDIT_Y,     lp->y,  FALSE);
 
 	// キャプション
-	wsprintf(title,"%s - 編集",lp->name);
-	SetWindowText(hdlg,title);
+	wsprintf(title, "%s - 編集", lp->name);
+	SetWindowText(hdlg, title);
 }
 
 /*--------------------------------------------------------------------
@@ -102,20 +102,20 @@ BOOL on_IDOK(HWND hdlg)
 	int  num;
 
 	// 新ロゴ名前
-	GetDlgItemText(hdlg,ID_EDIT_NAME,newname,LOGO_MAX_NAME);
+	GetDlgItemText(hdlg, ID_EDIT_NAME, newname, LOGO_MAX_NAME);
 	// リストボックスを検索
-	num = SendDlgItemMessage(owner,IDC_LIST,LB_FINDSTRING,-1,(WPARAM)newname);
-	if(num!=CB_ERR && num!=list_n){	// 編集中のもの以外に同名が見つかった
-		MessageBox(hdlg,"同名のロゴがあります\n別の名称を設定してください",filter_name,MB_OK|MB_ICONERROR);
+	num = SendDlgItemMessage(owner, IDC_LIST, LB_FINDSTRING, -1, (WPARAM)newname);
+	if (num != CB_ERR && num != list_n) { // 編集中のもの以外に同名が見つかった
+		MessageBox(hdlg, "同名のロゴがあります\n別の名称を設定してください", filter_name, MB_OK|MB_ICONERROR);
 		return FALSE;
 	}
 
-	olddata = (LOGO_HEADER *)SendDlgItemMessage(owner,IDC_LIST,LB_GETITEMDATA,list_n,0);
+	olddata = (LOGO_HEADER *)SendDlgItemMessage(owner, IDC_LIST, LB_GETITEMDATA, list_n, 0);
 
 	// メモリ確保
 	newdata = (LOGO_HEADER *)malloc(LOGO_DATASIZE(olddata));
-	if(newdata==NULL){
-		MessageBox(hdlg,"メモリを確保できませんでした",filter_name,MB_OK|MB_ICONERROR);
+	if (newdata == NULL) {
+		MessageBox(hdlg, "メモリを確保できませんでした", filter_name, MB_OK|MB_ICONERROR);
 		return TRUE;
 	}
 	// ロゴデータコピー
@@ -123,16 +123,16 @@ BOOL on_IDOK(HWND hdlg)
 
 	// ロゴデータ設定
 	lstrcpy(newdata->name,newname);
-	newdata->st = min(GetDlgItemInt(hdlg,ID_EDIT_START,NULL,FALSE),LOGO_STED_MAX);
-	newdata->ed = min(GetDlgItemInt(hdlg,ID_EDIT_END,  NULL,FALSE),LOGO_STED_MAX);
-	newdata->fi = min(GetDlgItemInt(hdlg,ID_EDIT_FIN,  NULL,FALSE),LOGO_FADE_MAX);
-	newdata->fo = min(GetDlgItemInt(hdlg,ID_EDIT_FOUT, NULL,FALSE),LOGO_FADE_MAX);
-	newdata->x  = GetDlgItemInt(hdlg,ID_EDIT_X,NULL,FALSE);
-	newdata->y  = GetDlgItemInt(hdlg,ID_EDIT_Y,NULL,FALSE);
+	newdata->st = min(GetDlgItemInt(hdlg, ID_EDIT_START, NULL, FALSE), LOGO_STED_MAX);
+	newdata->ed = min(GetDlgItemInt(hdlg, ID_EDIT_END,   NULL, FALSE), LOGO_STED_MAX);
+	newdata->fi = min(GetDlgItemInt(hdlg, ID_EDIT_FIN,   NULL, FALSE), LOGO_FADE_MAX);
+	newdata->fo = min(GetDlgItemInt(hdlg, ID_EDIT_FOUT,  NULL, FALSE), LOGO_FADE_MAX);
+	newdata->x  =     GetDlgItemInt(hdlg, ID_EDIT_X,     NULL, FALSE);
+	newdata->y  =     GetDlgItemInt(hdlg, ID_EDIT_Y,     NULL, FALSE);
 
 	// リストボックスを更新
-	DeleteItem(owner,list_n);
-	InsertItem(owner,list_n,newdata);
+	DeleteItem(owner, list_n);
+	InsertItem(owner, list_n, newdata);
 
 	return TRUE;
 }

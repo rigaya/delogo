@@ -9,31 +9,31 @@
 //----------------------------
 //	関数プロトタイプ
 //----------------------------
-static BOOL CopyTextToClipboard(HWND hwnd,const char* text);
+static BOOL CopyTextToClipboard(HWND hwnd, const char* text);
 
 
 /*====================================================================
 * 	StrDlgProc()		コールバックプロシージャ
 *===================================================================*/
-BOOL CALLBACK StrDlgProc(HWND hdlg,UINT msg,WPARAM wParam,LPARAM lParam)
+BOOL CALLBACK StrDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
 	static char str[STRDLG_MAXSTR];
 
-	switch(msg){
+	switch (msg) {
 		case WM_INITDIALOG:
-			SetDlgItemText(hdlg,ID_SHOW_STRING,(const char*)lParam);
+			SetDlgItemText(hdlg, ID_SHOW_STRING, (const char*)lParam);
 			lstrcpy(str,(const char*)lParam);
 			return TRUE;
 
 		case WM_COMMAND:
-			switch(LOWORD(wParam)){
+			switch (LOWORD(wParam)) {
 				case IDOK:
 				case IDCANCEL:
-					EndDialog(hdlg,LOWORD(wParam));
+					EndDialog(hdlg, LOWORD(wParam));
 					return TRUE;
 
 				case ID_COPY_STRING:
-					 CopyTextToClipboard(hdlg,str);
+					 CopyTextToClipboard(hdlg, str);
 			}
 			break;
 	}
@@ -44,29 +44,29 @@ BOOL CALLBACK StrDlgProc(HWND hdlg,UINT msg,WPARAM wParam,LPARAM lParam)
 /*--------------------------------------------------------------------
 * 	CopyTextToClipboard()	クリップボードにコピー
 *-------------------------------------------------------------------*/
-static BOOL CopyTextToClipboard(HWND hwnd,const char* text)
+static BOOL CopyTextToClipboard(HWND hwnd, const char* text)
 {
 	HGLOBAL hglbCopy;
 	char*   ptrCopy;
 
-	if(!OpenClipboard(hwnd)) return FALSE;
+	if (!OpenClipboard(hwnd)) return FALSE;
 
-	hglbCopy = GlobalAlloc(GMEM_MOVEABLE,lstrlen(text)+1);
-	if(hglbCopy==NULL){
+	hglbCopy = GlobalAlloc(GMEM_MOVEABLE, lstrlen(text)+1);
+	if (hglbCopy==NULL) {
 		CloseClipboard();
 		return FALSE;
 	}
 
 	ptrCopy = (char*)GlobalLock(hglbCopy);
-	lstrcpy(ptrCopy,text);
+	lstrcpy(ptrCopy, text);
 	GlobalUnlock(hglbCopy);
 
-	if(!EmptyClipboard()){
+	if (!EmptyClipboard()) {
 		GlobalFree(hglbCopy);
 		CloseClipboard();
 		return FALSE;
 	}
-	if(SetClipboardData(CF_TEXT,hglbCopy)==NULL){
+	if (SetClipboardData(CF_TEXT,hglbCopy) == NULL){
 		GlobalFree(hglbCopy);
 		CloseClipboard();
 		return FALSE;

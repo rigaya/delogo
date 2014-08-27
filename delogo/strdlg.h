@@ -13,7 +13,7 @@ extern "C" {
 #endif
 
 // ダイアログプロシージャ
-extern BOOL CALLBACK StrDlgProc(HWND hdlg,UINT msg,WPARAM wParam,LPARAM lParam);
+extern BOOL CALLBACK StrDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
 #ifdef __cplusplus
 }	// End of extern "C"

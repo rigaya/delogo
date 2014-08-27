@@ -20,8 +20,8 @@ extern BOOL CALLBACK OptDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lPara
 
 
 //	リストアイテム編集用関数
-extern void InsertItem(HWND hdlg,int n,void *data);
-extern void DeleteItem(HWND list,int num);
+extern void InsertItem(HWND hdlg, int n, void *data);
+extern void DeleteItem(HWND list, int num);
 
 #ifdef __cplusplus
 }	// End of extern "C"
