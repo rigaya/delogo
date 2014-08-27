@@ -6,15 +6,7 @@
 
 #include <windows.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 // ダイアログプロシージャ
-extern BOOL CALLBACK EditDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam);
-
-#ifdef __cplusplus
-}	// End of extern "C"
-#endif
+BOOL CALLBACK EditDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
 #endif
