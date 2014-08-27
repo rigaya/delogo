@@ -2,7 +2,7 @@
 
 //////////////////////////////////////////////////////////////////////
 //	オプションダイアログ
-#define IDC_STATIC  4100
+//#define IDC_STATIC  4100
 #define IDC_LIST    4102
 #define IDC_ADD     4103
 #define IDC_DEL     4104
