@@ -11,6 +11,7 @@
 
 
 extern char filter_name[];	// フィルタ名[filter.c]
+extern int  track_e[];      //トラックの最大値 [filter.c]
 
 static HWND owner;	// 親ウインドウ
 static int  list_n;
@@ -119,10 +120,10 @@ BOOL on_IDOK(HWND hdlg)
 
 	// ロゴデータ設定
 	lstrcpy(newdata->name, newname);
-	newdata->st = (short)min(GetDlgItemInt(hdlg, ID_EDIT_START, NULL, FALSE), LOGO_STED_MAX);
-	newdata->ed = (short)min(GetDlgItemInt(hdlg, ID_EDIT_END,   NULL, FALSE), LOGO_STED_MAX);
-	newdata->fi = (short)min(GetDlgItemInt(hdlg, ID_EDIT_FIN,   NULL, FALSE), LOGO_FADE_MAX);
-	newdata->fo = (short)min(GetDlgItemInt(hdlg, ID_EDIT_FOUT,  NULL, FALSE), LOGO_FADE_MAX);
+	newdata->st = (short)min(GetDlgItemInt(hdlg, ID_EDIT_START, NULL, FALSE), track_e[6]);
+	newdata->ed = (short)min(GetDlgItemInt(hdlg, ID_EDIT_END,   NULL, FALSE), track_e[9]);
+	newdata->fi = (short)min(GetDlgItemInt(hdlg, ID_EDIT_FIN,   NULL, FALSE), track_e[7]);
+	newdata->fo = (short)min(GetDlgItemInt(hdlg, ID_EDIT_FOUT,  NULL, FALSE), track_e[8]);
 	newdata->x  =     (short)GetDlgItemInt(hdlg, ID_EDIT_X,     NULL, FALSE);
 	newdata->y  =     (short)GetDlgItemInt(hdlg, ID_EDIT_Y,     NULL, FALSE);
 
