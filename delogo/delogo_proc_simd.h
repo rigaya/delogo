@@ -27,11 +27,13 @@ static const _declspec(align(MEM_ALIGN)) unsigned int ARRAY_0x8000[2][8] = {
 	{ 0x00008000, 0x00008000, 0x00008000, 0x00008000, 0x00008000, 0x00008000, 0x00008000, 0x00008000 },
 };
 static __forceinline __m256i cvtlo256_epi16_epi32(__m256i y0) {
-	return _mm256_sub_epi32(_mm256_unpacklo_epi16(_mm256_add_epi16(y0, _mm256_load_si256((__m256i *)ARRAY_0x8000[0])), _mm256_setzero_si256()), _mm256_load_si256((__m256i *)ARRAY_0x8000[1]));
+	__m256i yWordsHi = _mm256_cmpgt_epi16(_mm256_setzero_si256(), y0);
+	return _mm256_unpacklo_epi16(y0, yWordsHi);
 }
 
 static __forceinline __m256i cvthi256_epi16_epi32(__m256i y0) {
-	return cvtlo256_epi16_epi32(_mm256_srli_si256(y0, 8));
+	__m256i yWordsHi = _mm256_cmpgt_epi16(_mm256_setzero_si256(), y0);
+	return _mm256_unpackhi_epi16(y0, yWordsHi);
 }
 
 static __forceinline __m256i _mm256_neg_epi32(__m256i y) {
@@ -90,19 +92,23 @@ static __forceinline __m128i _mm_mullo_epi32_simd(__m128i x0, __m128i x1) {
 	return _mm_unpacklo_epi32(x2, x3);
 #endif
 }
+
 static __forceinline __m128i cvtlo_epi16_epi32(__m128i x0) {
 #if USE_SSE41
 	return _mm_cvtepi16_epi32(x0);
 #else
-	static const _declspec(align(64)) unsigned int VAL[2][4] = {
-		{ 0x80008000, 0x80008000, 0x80008000, 0x80008000 },
-		{ 0x00008000, 0x00008000, 0x00008000, 0x00008000 },
-	};
-	return _mm_sub_epi32(_mm_unpacklo_epi16(_mm_add_epi16(x0, _mm_load_si128((__m128i *)VAL[0])), _mm_setzero_si128()), _mm_load_si128((__m128i *)VAL[1]));
+	__m128i xWordsHi = _mm_cmpgt_epi16(_mm_setzero_si128(), x0);
+	return _mm_unpacklo_epi16(x0, xWordsHi);
 #endif
 }
+
 static __forceinline __m128i cvthi_epi16_epi32(__m128i x0) {
-	return cvtlo_epi16_epi32(_mm_srli_si128(x0, 8));
+#if USE_SSE41
+	return _mm_cvtepi16_epi32(_mm_srli_si128(x0, 8));
+#else
+	__m128i xWordsHi = _mm_cmpgt_epi16(_mm_setzero_si128(), x0);
+	return _mm_unpackhi_epi16(x0, xWordsHi);
+#endif
 }
 static __forceinline __m128i blendv_epi8_simd(__m128i a, __m128i b, __m128i mask) {
 #if USE_SSE41
