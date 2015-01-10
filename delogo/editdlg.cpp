@@ -68,10 +68,10 @@ void on_wm_initdialog(HWND hdlg)
 	SendDlgItemMessage(hdlg, ID_EDIT_END,    EM_SETLIMITTEXT, 4,               0);
 	SendDlgItemMessage(hdlg, ID_EDIT_FIN,    EM_SETLIMITTEXT, 3,               0);
 	SendDlgItemMessage(hdlg, ID_EDIT_FOUT,   EM_SETLIMITTEXT, 3,               0);
-	SendDlgItemMessage(hdlg, ID_EDIT_SPINST, UDM_SETRANGE,    0,   LOGO_STED_MAX);
-	SendDlgItemMessage(hdlg ,ID_EDIT_SPINED, UDM_SETRANGE,    0,   LOGO_STED_MAX);
-	SendDlgItemMessage(hdlg, ID_EDIT_SPINFI, UDM_SETRANGE,    0,   LOGO_FADE_MAX);
-	SendDlgItemMessage(hdlg, ID_EDIT_SPINFO, UDM_SETRANGE,    0,   LOGO_FADE_MAX);
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINST, UDM_SETRANGE,    0,      track_e[6]);
+	SendDlgItemMessage(hdlg ,ID_EDIT_SPINED, UDM_SETRANGE,    0,      track_e[9]);
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINFI, UDM_SETRANGE,    0,      track_e[7]);
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINFO, UDM_SETRANGE,    0,      track_e[8]);
 	SendDlgItemMessage(hdlg, ID_EDIT_X,      EM_SETLIMITTEXT, 5,               0);
 	SendDlgItemMessage(hdlg, ID_EDIT_Y,      EM_SETLIMITTEXT, 5,               0);
 	SendDlgItemMessage(hdlg, ID_EDIT_SPINX,  UDM_SETRANGE,    0,          0x7fff); // signed 16bitの上限
