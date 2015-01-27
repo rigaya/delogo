@@ -1,0 +1,5 @@
+﻿LIBRARY logo_scan.auf
+
+EXPORTS
+	GetFilterTable @1
+
