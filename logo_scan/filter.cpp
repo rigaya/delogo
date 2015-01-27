@@ -80,10 +80,10 @@
 #define ID_SCANBTN  40010
 HWND scanbtn;
 
-static short dn_x,dn_y;	// マウスダウン座標
-static short up_x,up_y;	// アップ座標
+static short dn_x, dn_y;	// マウスダウン座標
+static short up_x, up_y;	// アップ座標
 static bool  flg_mouse_down = 0;	// マウスダウンフラグ
-static short _x,_y,_w,_h,_thy;
+static short _x, _y, _w, _h, _thy;
 
 void *logodata = NULL;	// ロゴデータ（解析結果）
 
@@ -93,12 +93,12 @@ void *logodata = NULL;	// ロゴデータ（解析結果）
 //----------------------------
 //	プロトタイプ宣言
 //----------------------------
-inline void create_dlgitem(HWND hwnd,HINSTANCE hinst);
-inline void SetXYWH(FILTER* fp,void* editp);
-inline void SetRange(FILTER* fp,void* editp);
-inline void FixXYWH(FILTER* fp,void* editp);
-void ScanLogoData(FILTER* fp,void* editp);
-void SetScanPixel(FILTER*,ScanPixel*&,int,int,int,int,void*,char*);
+inline void create_dlgitem(HWND hwnd, HINSTANCE hinst);
+inline void SetXYWH(FILTER* fp, void* editp);
+inline void SetRange(FILTER* fp, void* editp);
+inline void FixXYWH(FILTER* fp, void* editp);
+void ScanLogoData(FILTER* fp, void* editp);
+void SetScanPixel(FILTER*, ScanPixel*&, int, int, int, int, void*, char*);
 
 //----------------------------
 //	FILTER_DLL構造体
@@ -181,25 +181,23 @@ EXTERN_C FILTER_DLL __declspec(dllexport) * __stdcall GetFilterTable( void )
 /*====================================================================
 *	フィルタ処理関数
 *===================================================================*/
-BOOL func_proc(FILTER *fp,FILTER_PROC_INFO *fpip)
+BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip)
 {
 	// 編集中以外は何もしない
-	if(!fp->exfunc->is_editing(fpip->editp))
+	if (!fp->exfunc->is_editing(fpip->editp))
 		return FALSE;
 
 	// 範囲外
-	if(fp->track[tLOGOX]==0 || fp->track[tLOGOY]==0) return FALSE;
-	if(fp->track[tLOGOX]+fp->track[tLOGOW] > fpip->w) return FALSE;
-	if(fp->track[tLOGOY]+fp->track[tLOGOH] > fpip->h) return FALSE;
-
-	PIXEL_YC* ptr;
-	int i;
+	if (fp->track[tLOGOX]==0 || fp->track[tLOGOY]==0) return FALSE;
+	if (fp->track[tLOGOX]+fp->track[tLOGOW] > fpip->w) return FALSE;
+	if (fp->track[tLOGOY]+fp->track[tLOGOH] > fpip->h) return FALSE;
 
 	// 枠を書き込む(Ⅰピクセル外側に）
 	// X-1,Y-1に移動
-	ptr = fpip->ycp_edit + (fp->track[tLOGOX]-1) + (fp->track[tLOGOY]-1) * fpip->max_w;
+	PIXEL_YC* ptr = fpip->ycp_edit + (fp->track[tLOGOX]-1) + (fp->track[tLOGOY]-1) * fpip->max_w;
 	// 横線（上）ネガポジ
-	for(i=0;i<=fp->track[tLOGOW]+1;i++){
+	int i;
+	for (i = 0; i <= fp->track[tLOGOW]+1; i++) {
 		ptr->y = 4096 - ptr->y;
 		ptr->cb *= -1;
 		ptr->cr *= -1;
@@ -207,13 +205,13 @@ BOOL func_proc(FILTER *fp,FILTER_PROC_INFO *fpip)
 	}
 	ptr += fpip->max_w - i;
 	// 縦線
-	for(i=1;i<=fp->track[tLOGOH];i++){
+	for (i = 1; i <= fp->track[tLOGOH]; i++) {
 		// 左線
 		ptr->y = 4096 - ptr->y;
 		ptr->cb *= -1;
 		ptr->cr *= -1;
 		// 右線
-		if(fp->track[tLOGOW]>=0){
+		if (fp->track[tLOGOW]>=0) {
 			ptr[fp->track[tLOGOW]+1].y  = 4096 - ptr[fp->track[tLOGOW]+1].y;
 			ptr[fp->track[tLOGOW]+1].cb *= -1;
 			ptr[fp->track[tLOGOW]+1].cr *= -1;
@@ -221,8 +219,8 @@ BOOL func_proc(FILTER *fp,FILTER_PROC_INFO *fpip)
 		ptr += fpip->max_w;
 	}
 	// 横線（下）
-	if(fp->track[tLOGOH]>=0){
-		for(i=0;i<=fp->track[tLOGOW]+1;i++){
+	if (fp->track[tLOGOH] >= 0) {
+		for (i = 0; i <= fp->track[tLOGOW]+1; i++) {
 			ptr->y = 4096 - ptr->y;
 			ptr->cb *= -1;
 			ptr->cr *= -1;
@@ -236,18 +234,18 @@ BOOL func_proc(FILTER *fp,FILTER_PROC_INFO *fpip)
 /*====================================================================
 *	設定ウィンドウプロシージャ
 *===================================================================*/
-BOOL func_WndProc( HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam, void *editp, FILTER *fp )
+BOOL func_WndProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam, void *editp, FILTER *fp)
 {
 	static bool scanning;
 
-	switch(message){
-		case WM_FILTER_INIT:	// 初期化
+	switch (message) {
+		case WM_FILTER_INIT: // 初期化
 			create_dlgitem(hwnd,fp->dll_hinst);
 			scanning = false;
 			break;
 
 		case WM_FILTER_CHANGE_PARAM:
-			if(scanning){
+			if (scanning) {
 				FixXYWH(fp,editp);
 				return TRUE;
 			}
@@ -256,40 +254,40 @@ BOOL func_WndProc( HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam, void *
 
 		//--------------------------------------------マウスメッセージ
 		case WM_FILTER_MAIN_MOUSE_DOWN:
-			if(!fp->exfunc->is_filter_active(fp))
-				return FALSE;	// 無効の時何もしない
+			if (!fp->exfunc->is_filter_active(fp))
+				return FALSE; // 無効の時何もしない
 			dn_x = up_x = (short)LOWORD(lparam);
 			dn_y = up_y = (short)HIWORD(lparam);
 			flg_mouse_down = true;
-			if(!scanning) SetXYWH(fp,editp);
+			if (!scanning) SetXYWH(fp,editp);
 			return TRUE;
 
 		case WM_FILTER_MAIN_MOUSE_UP:
-			if(!fp->exfunc->is_filter_active(fp))
+			if (!fp->exfunc->is_filter_active(fp))
 				return FALSE;
-			if(flg_mouse_down){	// マウスが押されている時
+			if (flg_mouse_down) { // マウスが押されている時
 				up_x = (short)LOWORD(lparam);
 				up_y = (short)HIWORD(lparam);
 				flg_mouse_down = false;
-				if(!scanning) SetXYWH(fp,editp);
+				if (!scanning) SetXYWH(fp,editp);
 				return TRUE;
 			}
 			break;
 
 		case WM_FILTER_MAIN_MOUSE_MOVE:
-			if(!fp->exfunc->is_filter_active(fp))
+			if (!fp->exfunc->is_filter_active(fp))
 				return FALSE;
-			if(flg_mouse_down){	// マウスが押されている時
+			if (flg_mouse_down) { // マウスが押されている時
 				up_x = (short)LOWORD(lparam);
 				up_y = (short)HIWORD(lparam);
-				if(!scanning) SetXYWH(fp,editp);
+				if (!scanning) SetXYWH(fp,editp);
 				return TRUE;
 			}
 			break;
 
 		//----------------------------------------------ロゴ解析ボタン
 		case WM_COMMAND:
-			switch(LOWORD(wparam)){
+			switch (LOWORD(wparam)) {
 				case ID_SCANBTN:
 					scanning = true;
 					ScanLogoData(fp,editp);
@@ -298,7 +296,7 @@ BOOL func_WndProc( HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam, void *
 			}
 			break;
 
-		case WM_KEYUP:	// メインウィンドウへ送る
+		case WM_KEYUP: // メインウィンドウへ送る
 		case WM_KEYDOWN:
 		case WM_MOUSEWHEEL:
 			SendMessage(GetWindow(hwnd, GW_OWNER), message, wparam, lparam);
@@ -316,11 +314,10 @@ BOOL func_WndProc( HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam, void *
 /*--------------------------------------------------------------------
 *	ダイアログアイテムを作る
 *-------------------------------------------------------------------*/
-inline void create_dlgitem(HWND hwnd,HINSTANCE hinst)
+inline void create_dlgitem(HWND hwnd, HINSTANCE hinst)
 {
 #define ITEM_Y (14+24*track_N+20*check_N)
-	HFONT font;
-	font = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
+	HFONT font = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
 
 	// ロゴ解析ボタン
 	scanbtn = CreateWindow("BUTTON", "ロゴ解析", WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON|BS_VCENTER,
@@ -331,7 +328,7 @@ inline void create_dlgitem(HWND hwnd,HINSTANCE hinst)
 /*--------------------------------------------------------------------
 *	設定ウィンドウの各値を固定する
 *-------------------------------------------------------------------*/
-inline void FixXYWH(FILTER* fp,void* editp)
+inline void FixXYWH(FILTER* fp, void* editp)
 {
 	fp->track[tLOGOX] = _x;
 	fp->track[tLOGOY] = _y;
@@ -347,36 +344,36 @@ inline void FixXYWH(FILTER* fp,void* editp)
 *-------------------------------------------------------------------*/
 inline void SetXYWH(FILTER* fp,void* editp)
 {
-	int h,w;
+	int h, w;
 
-	if(!fp->exfunc->get_frame_size(editp,&w,&h))
+	if (!fp->exfunc->get_frame_size(editp, &w, &h))
 		// 取得失敗
 		return;
 
 	// 画像内に収める
-	if(dn_x<0) dn_x = 0;
-	else if(dn_x>=w) dn_x = w -1;
-	if(dn_y<0) dn_y = 0;
-	else if(dn_y>=h) dn_y = h -1;
-	if(up_x<0) up_x = 0;
-	else if(up_x>=w) up_x = w -1;
-	if(up_y<0) up_y = 0;
-	else if(up_y>=h) up_y = h -1;
+	if (dn_x < 0) dn_x = 0;
+	else if (dn_x >= w) dn_x = (short)(w - 1);
+	if (dn_y < 0) dn_y = 0;
+	else if (dn_y >= h) dn_y = (short)(h - 1);
+	if (up_x < 0) up_x = 0;
+	else if (up_x >= w) up_x = (short)(w - 1);
+	if (up_y < 0) up_y = 0;
+	else if (up_y >= h) up_y = (short)(h - 1);
 
 
 	// 設定ウィンドの各値を設定
-	fp->track_e[tLOGOX] = w;	// X最大値
-	fp->track_e[tLOGOY] = h;	// Y最大値
-	fp->track[tLOGOX]   = ((dn_x<up_x)?dn_x:up_x) + 1;
-	fp->track[tLOGOY]   = ((dn_y<up_y)?dn_y:up_y) + 1;
-	fp->track_e[tLOGOW] = w - fp->track[tLOGOX];
-	fp->track_e[tLOGOH] = h - fp->track[tLOGOY];
-	fp->track[tLOGOW]   = ((dn_x<up_x)?up_x:dn_x) - fp->track[tLOGOX];
-	fp->track[tLOGOH]   = ((dn_y<up_y)?up_y:dn_y) - fp->track[tLOGOY];
+	fp->track_e[tLOGOX] = (short)w;    // X最大値
+	fp->track_e[tLOGOY] = (short)h;    // Y最大値
+	fp->track[tLOGOX]   = ((dn_x < up_x) ? dn_x : up_x) + 1;
+	fp->track[tLOGOY]   = ((dn_y < up_y) ? dn_y : up_y) + 1;
+	fp->track_e[tLOGOW] = (short)(w - fp->track[tLOGOX]);
+	fp->track_e[tLOGOH] = (short)(h - fp->track[tLOGOY]);
+	fp->track[tLOGOW]   = ((dn_x < up_x) ? up_x : dn_x) - fp->track[tLOGOX];
+	fp->track[tLOGOH]   = ((dn_y < up_y) ? up_y : dn_y) - fp->track[tLOGOY];
 
-	_x = fp->track[tLOGOX]; _y = fp->track[tLOGOY];
-	_w = fp->track[tLOGOW]; _h = fp->track[tLOGOH];
-	_thy = fp->track[tTHY];
+	_x = (short)fp->track[tLOGOX]; _y = (short)fp->track[tLOGOY];
+	_w = (short)fp->track[tLOGOW]; _h = (short)fp->track[tLOGOH];
+	_thy = (short)fp->track[tTHY];
 
 	fp->exfunc->filter_window_update(fp);	// 更新
 }
@@ -384,108 +381,106 @@ inline void SetXYWH(FILTER* fp,void* editp)
 /*--------------------------------------------------------------------
 *	トラックバーの最大値を設定する
 *-------------------------------------------------------------------*/
-inline void SetRange(FILTER* fp,void* editp)
+inline void SetRange(FILTER* fp, void* editp)
 {
-	int h,w;
+	int h, w;
 
-	if(!fp->exfunc->get_frame_size(editp,&w,&h))
+	if (!fp->exfunc->get_frame_size(editp, &w, &h))
 		// 取得失敗
 		return;
 
-	fp->track_e[tLOGOX] = w;	// X最大値
-	fp->track_e[tLOGOY] = h;	// Y最大値
-	fp->track_e[tLOGOW] = w - fp->track[tLOGOX] -1;	// 幅最大値
-	fp->track_e[tLOGOH] = h - fp->track[tLOGOY] -1;	// 高さ最大値
+	fp->track_e[tLOGOX] = w;    // X最大値
+	fp->track_e[tLOGOY] = h;    // Y最大値
+	fp->track_e[tLOGOW] = w - fp->track[tLOGOX] -1; // 幅最大値
+	fp->track_e[tLOGOH] = h - fp->track[tLOGOY] -1; // 高さ最大値
 
-	if(fp->track_e[tLOGOX] < fp->track[tLOGOX])
-		fp->track[tLOGOX] = fp->track_e[tLOGOX];	// 最大値にあわせる
-	if(fp->track_e[tLOGOY] < fp->track[tLOGOY])
+	if (fp->track_e[tLOGOX] < fp->track[tLOGOX])
+		fp->track[tLOGOX] = fp->track_e[tLOGOX];    // 最大値にあわせる
+	if (fp->track_e[tLOGOY] < fp->track[tLOGOY])
 		fp->track[tLOGOY] = fp->track_e[tLOGOY];
-	if(fp->track_e[tLOGOW] < fp->track[tLOGOW])
+	if (fp->track_e[tLOGOW] < fp->track[tLOGOW])
 		fp->track[tLOGOW] = fp->track_e[tLOGOW];
-	if(fp->track_e[tLOGOH] < fp->track[tLOGOH])
+	if (fp->track_e[tLOGOH] < fp->track[tLOGOH])
 		fp->track[tLOGOH] = fp->track_e[tLOGOH];
 
-	_x = fp->track[tLOGOX]; _y = fp->track[tLOGOY];
-	_w = fp->track[tLOGOW]; _h = fp->track[tLOGOH];
-	_thy = fp->track[tTHY];
+	_x = (short)fp->track[tLOGOX]; _y = (short)fp->track[tLOGOY];
+	_w = (short)fp->track[tLOGOW]; _h = (short)fp->track[tLOGOH];
+	_thy = (short)fp->track[tTHY];
 
-	fp->exfunc->filter_window_update(fp);	// 更新
+	fp->exfunc->filter_window_update(fp); // 更新
 }
 
 /*--------------------------------------------------------------------
 *	ロゴデータを解析する
 *-------------------------------------------------------------------*/
-void ScanLogoData(FILTER* fp,void* editp)
+void ScanLogoData(FILTER* fp, void* editp)
 {
-	EnableWindow(scanbtn,FALSE);	// 解析ボタン無効化
+	EnableWindow(scanbtn, FALSE); // 解析ボタン無効化
 
-	int w,h;		// 幅,高さ
-	int start,end;	// 選択開始・終了フレーム
-	int frame;		// 現在の表示フレーム
+	int w, h;       // 幅,高さ
+	int start, end; // 選択開始・終了フレーム
+	int frame;      // 現在の表示フレーム
 	char list[MAX_PATH] = "\0";	// フレームリストファイル名
 
-	ScanPixel*  sp = NULL;
-	LOGO_HEADER lgh;
+	ScanPixel* sp = NULL;
 
-	try{
-		if(fp->exfunc->is_filter_active(fp)==FALSE)	// フィルタが有効でない時
+	try {
+		if (fp->exfunc->is_filter_active(fp) == FALSE)	// フィルタが有効でない時
 			throw "フィルタを有効にしてください";
 
 		// 必要な情報を集める
-		frame   = fp->exfunc->get_frame_n(editp);
-		if(!frame) throw "映像が読み込まれていません";
+		frame = fp->exfunc->get_frame_n(editp);
+		if (!frame) throw "映像が読み込まれていません";
 
-		frame   = fp->exfunc->get_frame(editp);
+		frame = fp->exfunc->get_frame(editp);
 
-		fp->exfunc->get_select_frame(editp,&start,&end);
-		if(end-start<1) throw "画像の枚数が足りません";
+		fp->exfunc->get_select_frame(editp, &start, &end);
+		if (end-start < 1) throw "画像の枚数が足りません";
 
-//		if((fp->track[tLOGOW]+1)*(fp->track[tLOGOH]+1) > LOGO_MAXPIXEL)
+//		if ((fp->track[tLOGOW]+1)*(fp->track[tLOGOH]+1) > LOGO_MAXPIXEL)
 //			// h*wがロゴデータ上限より大きい時
 //			throw "ロゴ領域が広すぎます";
 
 		// 画像サイズ
-		if(!fp->exfunc->get_frame_size(editp,&w,&h))
+		if (!fp->exfunc->get_frame_size(editp, &w, &h))
 			throw "画像サイズ取得できませんでした";
 
 		// ロゴ名の初期値
-		GetWindowText(GetWindow(fp->hwnd,GW_OWNER),defname,LOGO_MAX_NAME-9);	// タイトルバー文字列取得
-		for(int i=1;i<LOGO_MAX_NAME-9;i++)
-			if(defname[i]=='.') defname[i] = '\0';	// 2文字目以降の'.'を終端にする（.aviを削除）
-		wsprintf(defname,"%s %dx%d",defname,w,h);	// デフォルトロゴ名作成
+		GetWindowText(GetWindow(fp->hwnd, GW_OWNER), defname, LOGO_MAX_NAME-9); // タイトルバー文字列取得
+		for (int i = 1; i < LOGO_MAX_NAME-9; i++)
+			if (defname[i]=='.') defname[i] = '\0'; // 2文字目以降の'.'を終端にする（.aviを削除）
+		wsprintf(defname, "%s %dx%d", defname, w, h); // デフォルトロゴ名作成
 
 		// キャッシュサイズ設定
-		fp->exfunc->set_ycp_filtering_cache_size(fp,w,h,1,NULL);
+		fp->exfunc->set_ycp_filtering_cache_size(fp, w, h, 1, NULL);
 
-		if(fp->check[cLIST]){	// リスト保存時ファイル名取得
+		if (fp->check[cLIST]) { // リスト保存時ファイル名取得
 			// ロゴ名の初期値
-			GetWindowText(GetWindow(fp->hwnd,GW_OWNER),list,MAX_PATH-10);	// タイトルバー文字列取得
-			for(int i=1;list[i]&&i<MAX_PATH-10;i++)
-				if(list[i]=='.') list[i] = '\0';	// 2文字目以降の'.'を終端にする（拡張子を削除）
-			wsprintf(list,"%s_scan.txt",list);	// デフォルトロゴ名作成
+			GetWindowText(GetWindow(fp->hwnd, GW_OWNER), list, MAX_PATH-10);	// タイトルバー文字列取得
+			for (int i = 1; list[i] && i < MAX_PATH-10; i++)
+				if (list[i] == '.') list[i] = '\0'; // 2文字目以降の'.'を終端にする（拡張子を削除）
+			wsprintf(list, "%s_scan.txt",list); // デフォルトロゴ名作成
 
-			if(!fp->exfunc->dlg_get_save_name(list,LIST_FILTER,list))
-				list[0] = '\0';	// キャンセル時
+			if (!fp->exfunc->dlg_get_save_name(list, LIST_FILTER, list))
+				list[0] = '\0'; // キャンセル時
 		}
 
 		// ScanPixelを設定する+解析・ロゴデータ作成
-		SetScanPixel(fp,sp,w,h,start,end,editp,list);
-	}
-	catch(const char* str){
-		MessageBox(fp->hwnd,str,filter_name,MB_OK|MB_ICONERROR);
-		if(sp) delete[] sp;
-		sp=NULL;
-		if(logodata) delete[] logodata;
-		logodata=NULL;
-		EnableWindow(scanbtn,TRUE);	// ボタンを有効に戻す
+		SetScanPixel(fp, sp, w, h, start, end, editp, list);
+	} catch (const char* str) {
+		MessageBox(fp->hwnd, str, filter_name, MB_OK|MB_ICONERROR);
+		if (sp) delete[] sp;
+		sp = NULL;
+		if (logodata) delete[] logodata;
+		logodata = NULL;
+		EnableWindow(scanbtn,TRUE); // ボタンを有効に戻す
 
 		return;
 	}
 
-	if(sp){
+	if (sp) {
 		delete[] sp;
-		sp=NULL;
+		sp = NULL;
 	}
 
 
@@ -494,9 +489,9 @@ void ScanLogoData(FILTER* fp,void* editp)
 
 	// 解析結果ダイアログ
 	dlgfp = fp;
-	DialogBox(fp->dll_hinst,"RESULT_DLG",GetWindow(fp->hwnd,GW_OWNER),ResultDlgProc);
+	DialogBox(fp->dll_hinst, "RESULT_DLG", GetWindow(fp->hwnd, GW_OWNER), ResultDlgProc);
 
-	if(logodata){
+	if (logodata) {
 		delete[] logodata;
 		logodata=NULL;
 	}
@@ -507,20 +502,20 @@ void ScanLogoData(FILTER* fp,void* editp)
 /*--------------------------------------------------------------------
 *	ScanPixelを設定する
 *-------------------------------------------------------------------*/
-void SetScanPixel(FILTER* fp,ScanPixel*& sp,int w,int h,int s,int e,void* editp,char* list)
+void SetScanPixel(FILTER* fp, ScanPixel*& sp, int w, int h, int s, int e, void* editp, char* list)
 {
 	// 範囲チェック
-	if(fp->track[tLOGOW]<=0 || fp->track[tLOGOH]<=0)
+	if (fp->track[tLOGOW]<=0 || fp->track[tLOGOH]<=0)
 		throw "領域が指定されていません";
-	if( (fp->track[tLOGOX]+fp->track[tLOGOW] > w-1) ||
-		(fp->track[tLOGOY]+fp->track[tLOGOH] > h-1) )
+	if ( (fp->track[tLOGOX] + fp->track[tLOGOW] > w-1) ||
+		(fp->track[tLOGOY] + fp->track[tLOGOH] > h-1) )
 			throw "領域の一部が画面外です";
 
 	// メモリ確保
-	if(sp) delete[] sp;
+	if (sp) delete[] sp;
 	ScanPixel::Defbuf = 1024;
-	sp = new ScanPixel[fp->track[tLOGOW]*fp->track[tLOGOH]];	// 幅×高さの配列
-	if(sp==NULL)
+	sp = new ScanPixel[fp->track[tLOGOW] * fp->track[tLOGOH]]; // 幅×高さの配列
+	if (sp == NULL)
 		throw "メモリが確保できませんでした";
 
 	AbortDlgParam param;
@@ -541,20 +536,19 @@ void SetScanPixel(FILTER* fp,ScanPixel*& sp,int w,int h,int s,int e,void* editp,
 	param.mark   = fp->check[cMARK];
 	param.list   = NULL;
 
-	if(*list){
-		param.list = fopen(list,"w");
-		if(param.list==NULL){
+	if (*list) {
+		if (fopen_s(&param.list, list, "w") || param.list == NULL) {
 			throw "フレームリストファイルの作成に失敗しました";
 		}
-		fprintf(param.list,"<Frame List>\n");
+		fprintf(param.list, "<Frame List>\n");
 	}
 
-	DialogBoxParam(fp->dll_hinst,"ABORT_DLG",GetWindow(fp->hwnd,GW_OWNER),AbortDlgProc,(LPARAM)&param);
+	DialogBoxParam(fp->dll_hinst, "ABORT_DLG", GetWindow(fp->hwnd, GW_OWNER), AbortDlgProc, (LPARAM)&param);
 
-	if(param.list) fclose(param.list);
+	if (param.list) fclose(param.list);
 	param.list = NULL;
 
-	if(param.errstr)
+	if (param.errstr)
 		throw param.errstr;
 }
 

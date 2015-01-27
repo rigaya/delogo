@@ -22,9 +22,9 @@ struct AbortDlgParam {
 	FILTER*     fp;
 	void*       editp;
 	ScanPixel*  sp;
-	int         s,e;
+	int         s, e;
 	int         max_w;
-	int         x,y,w,h,t;
+	int         x, y, w, h, t;
 	void**      data;
 	const char* errstr;
 	int         mark;

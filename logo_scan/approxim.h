@@ -21,22 +21,19 @@
 * 		成功：true	失敗：false
 *===================================================================*/
 template <class T>
-bool approxim_line(T* x,T* y,int n,double& a,double& b)
+bool approxim_line(T* x, T* y, int n, double& a, double& b)
 {
-	double sum_x,sum_y,sum_x2,sum_xy;
-	double temp;
+	double sum_x  = sum(x,n);	// ΣXi
+	double sum_y  = sum(y,n);	// ΣYi
+	double sum_x2 = sq_sum(x,x,n);	// Σ(X^2)
+	double sum_xy = sq_sum(x,y,n);	// Σ(X*Y)
 
-	sum_x  = sum(x,n);	// ΣXi
-	sum_y  = sum(y,n);	// ΣYi
-	sum_x2 = sq_sum(x,x,n);	// Σ(X^2)
-	sum_xy = sq_sum(x,y,n);	// Σ(X*Y)
+	// 0での商算回避
+	double temp = (double)n * sum_x2 - sum_x * sum_x;
+	if (temp==0.0) return false;
 
-	// ０での商算回避
-	temp = (double)n*sum_x2 - sum_x*sum_x;
-	if(temp==0.0) return false;
-
-	a = ((double)n*sum_xy - sum_x*sum_y)/temp;
-	b = (sum_x2*sum_y - sum_x*sum_xy)/temp;
+	a = ((double)n * sum_xy - sum_x * sum_y) / temp;
+	b = (sum_x2 * sum_y - sum_x * sum_xy) / temp;
 
 	return true;
 }
@@ -47,12 +44,10 @@ bool approxim_line(T* x,T* y,int n,double& a,double& b)
 * 		n: 要素数
 *-------------------------------------------------------------------*/
 template <class T>
-static double sum(T* x,int n)
+static double sum(T* x, int n)
 {
-	int i;
 	double a = 0.0;
-
-	for(i=0;i<n;i++)
+	for (int i = 0; i < n; i++)
 		a += x[i];
 
 	return a;
@@ -65,12 +60,10 @@ static double sum(T* x,int n)
 * 		n: 要素数
 *-------------------------------------------------------------------*/
 template <class T>
-static double sq_sum(T* x,T* y,int n)
+static double sq_sum(T* x, T* y, int n)
 {
-	int i;
 	double a = 0.0;
-
-	for(i=0;i<n;i++)
+	for (int i = 0; i < n; i++)
 		a += x[i] * y[i];
 
 	return a;
