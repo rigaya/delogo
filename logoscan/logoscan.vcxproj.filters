@@ -46,7 +46,7 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="logo_scan.def">
+    <None Include="logoscan.def">
       <Filter>ソース ファイル</Filter>
     </None>
   </ItemGroup>

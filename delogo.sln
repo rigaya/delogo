@@ -5,7 +5,7 @@ VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "delogo", "delogo\delogo.vcxproj", "{3F5F9509-F299-4D94-9B91-BA1DA4CDCC4F}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "logo_scan", "logo_scan\logo_scan.vcxproj", "{B0865ECA-C09A-4221-BF4A-EEA865863B8D}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "logoscan", "logoscan\logoscan.vcxproj", "{B0865ECA-C09A-4221-BF4A-EEA865863B8D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
