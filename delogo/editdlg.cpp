@@ -3,6 +3,7 @@
 *===================================================================*/
 #include <windows.h>
 #include <commctrl.h>
+#include <utility>
 #include "resource.h"
 #include "editdlg.h"
 #include "logo.h"
@@ -22,17 +23,71 @@ static int  list_n;
 void on_wm_initdialog(HWND hdlg);
 BOOL on_IDOK(HWND hdlg);
 
+typedef struct {
+	RECT rect;
+	int w, h;
+} ITEM_SIZE;
+
+static ITEM_SIZE GetSize(HWND hwnd, ITEM_SIZE *parent, ITEM_SIZE *border) {
+	RECT rect;
+	GetWindowRect(hwnd, &rect);
+	ITEM_SIZE size;
+	size.rect = rect;
+	size.w = rect.right - rect.left;
+	size.h = rect.bottom - rect.top;
+	if (parent && border) {
+		size.rect.top -= parent->rect.top + border->rect.top;
+		size.rect.bottom -= parent->rect.top + border->rect.top;
+		size.rect.right -= parent->rect.left + border->rect.left;
+		size.rect.left -= parent->rect.left + border->rect.left;
+	}
+	return size;
+}
+
+static void MoveControl(HWND hdlg, int ControlId, const ITEM_SIZE *defaultPos, int move) {
+	MoveWindow(GetDlgItem(hdlg, ControlId), defaultPos->rect.left + move, defaultPos->rect.top, defaultPos->w, defaultPos->h, TRUE);
+	//SetWindowPos(GetDlgItem(hdlg, ControlId), 0, defaultPos->rect.left + move, defaultPos->rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+}
+
 /*====================================================================
 * 	EditDlgProc()		コールバックプロシージャ
 *===================================================================*/
 BOOL CALLBACK EditDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	static ITEM_SIZE defualtWindow, defualtEditName;
+	static int TargetIDs[] ={
+		IDC_GROUP_FADE, IDC_GROUP_POS, ID_EDIT_X, ID_EDIT_Y, ID_EDIT_START, ID_EDIT_END, ID_EDIT_FIN, ID_EDIT_FOUT,
+		IDOK, IDCANCEL, ID_EDIT_SPINST, ID_EDIT_SPINED, ID_EDIT_SPINFI, ID_EDIT_SPINFO, ID_EDIT_SPINX, ID_EDIT_SPINY,
+		ID_STATIC_X, ID_STATIC_Y, ID_STATIC_START, ID_STATIC_END, ID_STATIC_FIN, ID_STATIC_FOUT, 
+	};
+	static ITEM_SIZE defualtControls[_countof(TargetIDs)];
+	static ITEM_SIZE border;
 	switch (msg) {
-		case WM_INITDIALOG:
+	case WM_INITDIALOG:
+		{
 			owner = GetWindow(hdlg, GW_OWNER);
 			list_n = (int)lParam;
 			on_wm_initdialog(hdlg);
-			break;
+			defualtWindow = GetSize(hdlg, nullptr, nullptr);
+
+			POINT point ={ 0 };
+			ClientToScreen(hdlg, &point);
+			RECT rc;
+			GetClientRect(hdlg, &rc);
+
+			border.rect.top = point.y - defualtWindow.rect.top;
+			border.rect.left = point.x - defualtWindow.rect.left;
+
+			border.rect.bottom = defualtWindow.rect.bottom - defualtWindow.rect.top - border.rect.top;
+			border.rect.right = defualtWindow.rect.right - defualtWindow.rect.left - border.rect.left;
+
+			defualtEditName   = GetSize(GetDlgItem(hdlg, ID_EDIT_NAME),   &defualtWindow, &border);
+
+			for (int i = 0; i < _countof(TargetIDs); i++) {
+				defualtControls[i] = GetSize(GetDlgItem(hdlg, TargetIDs[i]), &defualtWindow, &border);
+			}
+		}
+		break;
 
 		case WM_COMMAND:
 			switch (LOWORD(wParam)) {
@@ -45,6 +100,24 @@ BOOL CALLBACK EditDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 					EndDialog(hdlg, LOWORD(wParam));
 					break;
 			}
+			break;
+		case WM_SIZING:
+			SendMessage(hdlg, WM_SETREDRAW, 0, 0);
+			RECT *rect = (RECT *)lParam;
+
+			rect->right  = max(rect->right, rect->left + defualtWindow.w);
+			rect->bottom = rect->top + defualtWindow.h;
+			int new_width = rect->right - rect->left;
+
+			SetWindowPos(GetDlgItem(hdlg, ID_EDIT_NAME), 0, 0, 0, defualtEditName.w + (new_width - defualtWindow.w), defualtEditName.h, SWP_NOMOVE | SWP_NOZORDER);
+
+			int group_fade_move_x = new_width / 2 - defualtControls[0].w / 2 - border.rect.left - defualtControls[0].rect.left;
+			for (int i = 0; i < _countof(TargetIDs); i++) {
+				MoveControl(hdlg, TargetIDs[i], &defualtControls[i], group_fade_move_x);
+			}
+			SendMessage(hdlg, WM_SETREDRAW, 1, 0);
+			InvalidateRect(hdlg,NULL,true);
+			return TRUE;
 	}
 
 	return FALSE;

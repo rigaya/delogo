@@ -38,6 +38,20 @@
 #define ID_EDIT_SPINX   4212
 #define ID_EDIT_SPINY   4213
 
+
+#define ID_STATIC_X   4214
+#define ID_STATIC_Y   4215
+#define ID_STATIC_START   4216
+#define ID_STATIC_END   4217
+#define ID_STATIC_FIN   4218
+#define ID_STATIC_FOUT   4219
+
+#define IDC_GROUP_FADE 4220
+#define IDC_GROUP_POS  4221
+
+#define EDIT_SIZE_WIDTH  150
+#define EDIT_SIZE_HEIGHT 135
+
 //////////////////////////////////////////////////////////////////////
 //	文字列表示ダイアログ
 #define ID_SHOW_STRING  4301
