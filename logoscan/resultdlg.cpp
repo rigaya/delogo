@@ -20,7 +20,7 @@
 
 
 FILTER* dlgfp;	// FILTER構造体
-char    defname[32];	// デフォルトロゴ名
+char    defname[LOGO_MAX_NAME];	// デフォルトロゴ名
 
 static PIXEL* pix;	// 表示用ビットマップ
 static BITMAPINFO  bmi;
@@ -219,7 +219,7 @@ static void DispLogo(HWND hdlg)
 *-------------------------------------------------------------------*/
 static void idc_save(HWND hdlg)
 {
-	ZeroMemory(defname, 32);
+	ZeroMemory(defname, sizeof(defname));
 	GetDlgItemText(hdlg, IDC_EDIT, defname, LOGO_MAX_NAME);
 	if (lstrlen(defname) == 0) {
 		MessageBox(hdlg, "ロゴ名を入力してください", filter_name, MB_OK|MB_ICONERROR);
@@ -290,7 +290,7 @@ static void SendLogoData(HWND hdlg)
 	if (!logodata) return; // ロゴデータが無い
 
 	// ロゴ名設定
-	ZeroMemory(defname, 32);
+	ZeroMemory(defname, sizeof(defname));
 	GetDlgItemText(hdlg, IDC_EDIT, defname, LOGO_MAX_NAME);
 	if (lstrlen(defname) == 0) {
 		MessageBox(hdlg, "ロゴ名を入力してください", filter_name, MB_OK|MB_ICONERROR);

@@ -24,7 +24,8 @@
 #define ___LOGO_H
 
 /* ロゴヘッダ文字列 */
-#define LOGO_FILE_HEADER_STR "<logo data file ver0.1>\0\0\0\0\0"
+#define LOGO_FILE_HEADER_STR_OLD "<logo data file ver0.1>\0\0\0\0\0"
+#define LOGO_FILE_HEADER_STR     "<logo data file ver0.2>\0\0\0\0\0"
 #define LOGO_FILE_HEADER_STR_SIZE  28
 
 /*--------------------------------------------------------------------
@@ -46,18 +47,27 @@ typedef struct {
 #define LOGO_MAX_DP   1000
 
 /* ロゴ名最大文字数（終端\0含む） */
-#define LOGO_MAX_NAME 32
+#define LOGO_MAX_NAME 256
 
 /*--------------------------------------------------------------------
 *	LOGO_HEADER 構造体
 *		ロゴの基本的な情報を記録
 *-------------------------------------------------------------------*/
 typedef struct {
+	char     name[32];				/* 名称                   */
+	short    x, y;      			/* 基本位置               */
+	short    h, w;      			/* ロゴ高さ・幅           */
+	short    fi, fo;    			/* デフォルトのFadeIn/Out */
+	short    st, ed;    			/* デフォルトの開始･終了  */
+} LOGO_HEADER_OLD;
+
+typedef struct {
 	char     name[LOGO_MAX_NAME]; 	/* 名称                   */
 	short    x, y;      			/* 基本位置               */
 	short    h, w;      			/* ロゴ高さ・幅           */
 	short    fi, fo;    			/* デフォルトのFadeIn/Out */
 	short    st, ed;    			/* デフォルトの開始･終了  */
+	char     reserved[240];
 } LOGO_HEADER;
 
 /*--------------------------------------------------------------------

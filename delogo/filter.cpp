@@ -756,17 +756,17 @@ static void init_dialog(HWND hwnd, HINSTANCE hinst)
 
 	// コンボボックス
 	dialog.cb_logo = CreateWindow("COMBOBOX", "", WS_CHILD|WS_VISIBLE|CBS_DROPDOWNLIST|WS_VSCROLL,
-									60,ITEM_Y, 175,100, hwnd, (HMENU)ID_COMBO_LOGO, hinst, NULL);
+									8,ITEM_Y, 300,100, hwnd, (HMENU)ID_COMBO_LOGO, hinst, NULL);
 	SendMessage(dialog.cb_logo, WM_SETFONT, (WPARAM)dialog.font, 0);
 
 	// オプションボタン
 	dialog.bt_opt = CreateWindow("BUTTON", "オプション", WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,
-									240,ITEM_Y, 63,20, hwnd, (HMENU)ID_BUTTON_OPTION, hinst, NULL);
+									240,ITEM_Y-30, 66,24, hwnd, (HMENU)ID_BUTTON_OPTION, hinst, NULL);
 	SendMessage(dialog.bt_opt, WM_SETFONT, (WPARAM)dialog.font, 0);
 
 	// AviSynthボタン
 	dialog.bt_synth = CreateWindow("BUTTON", "AviSynth", WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,
-									240,ITEM_Y-25, 63,20, hwnd, (HMENU)ID_BUTTON_SYNTH, hinst, NULL);
+									240,ITEM_Y-60, 66,24, hwnd, (HMENU)ID_BUTTON_SYNTH, hinst, NULL);
 	SendMessage(dialog.bt_synth, WM_SETFONT, (WPARAM)dialog.font, 0);
 }
 
@@ -1066,6 +1066,18 @@ static void read_logo_pack(char *fname, FILTER *fp)
 	LOGO_FILE_HEADER logo_file_header = { 0 };
 	ReadFile(hFile, &logo_file_header, sizeof(logo_file_header), &readed, NULL); // ファイルヘッダ取得
 
+	int logo_header_ver = 0;
+	if (0 == strcmp(logo_file_header.str, LOGO_FILE_HEADER_STR)) {
+		logo_header_ver = 2;
+	} else if (0 == strcmp(logo_file_header.str, LOGO_FILE_HEADER_STR_OLD)) {
+		logo_header_ver = 1;
+	} else {
+		CloseHandle(hFile);
+		MessageBox(fp->hwnd, "ロゴデータファイルが不正です", filter_name, MB_OK|MB_ICONERROR);
+		return;
+	}
+
+	const size_t logo_header_size = (logo_header_ver == 2) ? sizeof(LOGO_HEADER) : sizeof(LOGO_HEADER_OLD);
 	logodata_n = 0;	// 書き込みデータカウンタ
 	logodata = NULL;
 	int logonum = SWAP_ENDIAN(logo_file_header.logonum.l);
@@ -1075,10 +1087,17 @@ static void read_logo_pack(char *fname, FILTER *fp)
 		// LOGO_HEADER 読み込み
 		readed = 0;
 		LOGO_HEADER logo_header = { 0 };
-		ReadFile(hFile, &logo_header, sizeof(LOGO_HEADER), &readed, NULL);
-		if (readed != sizeof(LOGO_HEADER)) {
+		ReadFile(hFile, &logo_header, logo_header_size, &readed, NULL);
+		if (readed != logo_header_size) {
 			MessageBox(fp->hwnd, "ロゴデータの読み込みに失敗しました", filter_name, MB_OK|MB_ICONERROR);
 			break;
+		}
+		if (logo_header_ver == 1) {
+			LOGO_HEADER_OLD old_header;
+			memcpy(&old_header,       &logo_header,     sizeof(old_header));
+			memset(&logo_header,      0,                sizeof(logo_header));
+			memcpy(&logo_header.name, &old_header.name, sizeof(old_header.name));
+			memcpy(&logo_header.x,    &old_header.x,    sizeof(short) * 8);
 		}
 
 //  ldpには基本的に同名のロゴは存在しない

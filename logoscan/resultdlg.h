@@ -7,9 +7,10 @@
 
 #include <windows.h>
 #include "filter.h"
+#include "logo.h"
 
 extern FILTER* dlgfp;	// FILTER構造体
-extern char    defname[32];	// デフォルトロゴ名
+extern char    defname[LOGO_MAX_NAME];	// デフォルトロゴ名
 
 #ifdef __cplusplus
 extern "C" {
