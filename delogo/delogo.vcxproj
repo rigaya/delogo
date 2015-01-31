@@ -110,6 +110,7 @@
   <ItemGroup>
     <ClInclude Include="delogo_proc.h" />
     <ClInclude Include="delogo_proc_simd.h" />
+    <ClInclude Include="dlg_util.h" />
     <ClInclude Include="editdlg.h" />
     <ClInclude Include="filter.h" />
     <ClInclude Include="logo.h" />

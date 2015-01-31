@@ -9,7 +9,7 @@
 #include "logo.h"
 #include "optdlg.h"
 #include "logodef.h"
-
+#include "dlg_util.h"
 
 extern char filter_name[];	// フィルタ名[filter.c]
 extern int  track_e[];      //トラックの最大値 [filter.c]
@@ -22,32 +22,6 @@ static int  list_n;
 //----------------------------
 void on_wm_initdialog(HWND hdlg);
 BOOL on_IDOK(HWND hdlg);
-
-typedef struct {
-	RECT rect;
-	int w, h;
-} ITEM_SIZE;
-
-static ITEM_SIZE GetSize(HWND hwnd, ITEM_SIZE *parent, ITEM_SIZE *border) {
-	RECT rect;
-	GetWindowRect(hwnd, &rect);
-	ITEM_SIZE size;
-	size.rect = rect;
-	size.w = rect.right - rect.left;
-	size.h = rect.bottom - rect.top;
-	if (parent && border) {
-		size.rect.top -= parent->rect.top + border->rect.top;
-		size.rect.bottom -= parent->rect.top + border->rect.top;
-		size.rect.right -= parent->rect.left + border->rect.left;
-		size.rect.left -= parent->rect.left + border->rect.left;
-	}
-	return size;
-}
-
-static void MoveControl(HWND hdlg, int ControlId, const ITEM_SIZE *defaultPos, int move) {
-	MoveWindow(GetDlgItem(hdlg, ControlId), defaultPos->rect.left + move, defaultPos->rect.top, defaultPos->w, defaultPos->h, TRUE);
-	//SetWindowPos(GetDlgItem(hdlg, ControlId), 0, defaultPos->rect.left + move, defaultPos->rect.top, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
-}
 
 /*====================================================================
 * 	EditDlgProc()		コールバックプロシージャ
@@ -63,31 +37,19 @@ BOOL CALLBACK EditDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 	static ITEM_SIZE defualtControls[_countof(TargetIDs)];
 	static ITEM_SIZE border;
 	switch (msg) {
-	case WM_INITDIALOG:
-		{
+		case WM_INITDIALOG:
 			owner = GetWindow(hdlg, GW_OWNER);
 			list_n = (int)lParam;
 			on_wm_initdialog(hdlg);
 			defualtWindow = GetSize(hdlg, nullptr, nullptr);
+			border = GetBorderSize(hdlg, defualtWindow);
 
-			POINT point ={ 0 };
-			ClientToScreen(hdlg, &point);
-			RECT rc;
-			GetClientRect(hdlg, &rc);
-
-			border.rect.top = point.y - defualtWindow.rect.top;
-			border.rect.left = point.x - defualtWindow.rect.left;
-
-			border.rect.bottom = defualtWindow.rect.bottom - defualtWindow.rect.top - border.rect.top;
-			border.rect.right = defualtWindow.rect.right - defualtWindow.rect.left - border.rect.left;
-
-			defualtEditName   = GetSize(GetDlgItem(hdlg, ID_EDIT_NAME),   &defualtWindow, &border);
+			defualtEditName = GetSize(GetDlgItem(hdlg, ID_EDIT_NAME), &defualtWindow, &border);
 
 			for (int i = 0; i < _countof(TargetIDs); i++) {
 				defualtControls[i] = GetSize(GetDlgItem(hdlg, TargetIDs[i]), &defualtWindow, &border);
 			}
-		}
-		break;
+			break;
 
 		case WM_COMMAND:
 			switch (LOWORD(wParam)) {
