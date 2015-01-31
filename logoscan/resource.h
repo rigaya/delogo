@@ -16,6 +16,9 @@
 #define IDC_SPINR  4106
 #define IDC_SPING  4107
 #define IDC_SPINB  4108
+#define IDC_TEXT_R 4109
+#define IDC_TEXT_G 4110
+#define IDC_TEXT_B 4111
 
 // used by abortdlg
 #define IDC_EXAMF    4211
