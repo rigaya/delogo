@@ -22,6 +22,10 @@
 #define IDC_SPING   4116
 #define IDC_SPINB   4117
 
+#define IDC_STATIC_R 4118
+#define IDC_STATIC_G 4119
+#define IDC_STATIC_B 4120
+
 //////////////////////////////////////////////////////////////////////
 //	編集ダイアログ
 #define ID_EDIT_NAME    4201

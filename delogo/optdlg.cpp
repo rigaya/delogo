@@ -8,6 +8,7 @@
 #include "optdlg.h"
 #include "resource.h"
 #include "editdlg.h"
+#include "dlg_util.h"
 
 
 #define LGD_FILTER  "ロゴデータファイル (*.lgd)\0*.lgd\0"\
@@ -38,6 +39,7 @@ static void CopyCBtoLB(HWND combo, HWND list);
 static void DispLogo(HWND hdlg);
 static void set_bgyc(HWND hdlg);
 static void RGBtoYCbCr(PIXEL_YC *ycp, const PIXEL *rgb);
+static void on_wm_sizing(HWND hdlg, RECT *rect);
 
 
 //----------------------------
@@ -63,7 +65,17 @@ static int  add_buf = 0, del_buf = 0;
 
 extern char filter_name[];
 
-
+static ITEM_SIZE defaultWindow, border;
+static int TargetIDs[] ={
+	IDC_LIST, IDC_PANEL,
+	IDC_ADD, IDC_DEL, IDC_EXPORT, IDC_EDIT, IDC_UP, IDC_DOWN,
+	IDOK, IDCANCEL,
+	IDC_GROUP,
+	IDC_STATIC_R, IDC_RED, IDC_SPINR,
+	IDC_STATIC_G, IDC_GREEN, IDC_SPING,
+	IDC_STATIC_B, IDC_BLUE, IDC_SPINB
+};
+static ITEM_SIZE defaultControls[_countof(TargetIDs)];
 
 /*====================================================================
 * 	OptDlgProc()		コールバックプロシージャ
@@ -137,6 +149,12 @@ BOOL CALLBACK OptDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 					}
 					break;
 			}
+			break;
+		case WM_SIZING:
+			on_wm_sizing(hdlg, (RECT *)lParam);
+			return TRUE;
+		default:
+			break;
 	}
 
 	return FALSE;
@@ -174,6 +192,40 @@ static void Wm_initdialog(HWND hdlg)
 	// 一番上のリストアイテムを選択
 	SendDlgItemMessage(hdlg, IDC_LIST, LB_SETCURSEL, 0, 0);
 
+	get_initial_dialog_size(hdlg, defaultWindow, border, defaultControls, TargetIDs);
+	MoveWindow(hdlg, defaultWindow.rect.left, defaultWindow.rect.top, 440, 520, TRUE);
+	RECT changed = defaultWindow.rect;
+	changed.right = changed.left + 440;
+	changed.bottom = changed.top + 520;
+	on_wm_sizing(hdlg, &changed);
+	DispLogo(hdlg);
+}
+
+/*--------------------------------------------------------------------
+* 	on_wm_sizing()
+*-------------------------------------------------------------------*/
+static void on_wm_sizing(HWND hdlg, RECT *rect) {
+	SendMessage(hdlg, WM_SETREDRAW, 0, 0);
+
+	rect->right  = max(rect->right, rect->left + defaultWindow.w);
+	rect->bottom = max(rect->bottom, rect->top + defaultWindow.h);
+	int new_width = rect->right - rect->left;
+	int new_height = rect->bottom - rect->top;
+	
+	MoveWindow(GetDlgItem(hdlg, TargetIDs[0]), defaultControls[0].rect.left, defaultControls[0].rect.top, defaultControls[0].w + (new_width - defaultWindow.w), defaultControls[0].h + (new_height - defaultWindow.h), TRUE);
+	MoveWindow(GetDlgItem(hdlg, TargetIDs[1]), defaultControls[1].rect.left, defaultControls[1].rect.top + (new_height - defaultWindow.h), defaultControls[1].w, defaultControls[1].h, TRUE);
+	for (int i = 2; i < 8; i++) {
+		MoveControl(hdlg, TargetIDs[i], &defaultControls[i], new_width - defaultWindow.w);
+	}
+	for (int i = 8; i < 10; i++) {
+		MoveControl(hdlg, TargetIDs[i], &defaultControls[i], new_width - defaultWindow.w, new_height - defaultWindow.h);
+	}
+	int group_fade_move_x = new_width / 2 - defaultControls[10].w / 2 - border.rect.left - defaultControls[10].rect.left;
+	for (int i = 10; i < _countof(TargetIDs); i++) {
+		MoveControl(hdlg, TargetIDs[i], &defaultControls[i], group_fade_move_x, new_height - defaultWindow.h);
+	}
+	SendMessage(hdlg, WM_SETREDRAW, 1, 0);
+	InvalidateRect(hdlg,NULL,true);
 }
 
 
