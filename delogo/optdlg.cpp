@@ -442,6 +442,14 @@ static int ReadLogoData(char *fname, HWND hdlg)
 		return 0;
 	}
 
+	int logo_header_ver = get_logo_file_header_ver(&logo_file_header);
+	if (logo_header_ver == 0) {
+		CloseHandle(hFile);
+		MessageBox(hdlg, "ロゴデータファイルが不正です", filter_name, MB_OK|MB_ICONERROR);
+		return 0;
+	}
+	
+	const size_t logo_header_size = (logo_header_ver == 2) ? sizeof(LOGO_HEADER) : sizeof(LOGO_HEADER_OLD);
 	int n = 0;	// 読み込みデータカウンタ
 	int num = SWAP_ENDIAN(logo_file_header.logonum.l); // ファイルに含まれるデータの数
 
@@ -450,10 +458,13 @@ static int ReadLogoData(char *fname, HWND hdlg)
 		// LOGO_HEADER 読み込み
 		readed = 0;
 		LOGO_HEADER logo_header;
-		ReadFile(hFile, &logo_header, sizeof(LOGO_HEADER), &readed, NULL);
-		if (readed != sizeof(LOGO_HEADER)) {
-			MessageBox(hdlg,"ロゴデータの読み込みに失敗しました", filter_name, MB_OK|MB_ICONERROR);
+		ReadFile(hFile, &logo_header, logo_header_size, &readed, NULL);
+		if (readed != logo_header_size) {
+			MessageBox(hdlg, "ロゴデータの読み込みに失敗しました", filter_name, MB_OK|MB_ICONERROR);
 			break;
+		}
+		if (logo_header_ver == 1) {
+			convert_logo_header_v1_to_v2(&logo_header);
 		}
 
 		// 同名ロゴがあるか
