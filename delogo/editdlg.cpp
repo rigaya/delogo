@@ -17,10 +17,19 @@ extern int  track_e[];      //トラックの最大値 [filter.c]
 static HWND owner;	// 親ウインドウ
 static int  list_n;
 
+static ITEM_SIZE defaultWindow, border;
+static int TargetIDs[] ={
+	ID_EDIT_NAME, IDC_GROUP_FADE, IDC_GROUP_POS, ID_EDIT_X, ID_EDIT_Y, ID_EDIT_START, ID_EDIT_END, ID_EDIT_FIN, ID_EDIT_FOUT,
+	IDOK, IDCANCEL, ID_EDIT_SPINST, ID_EDIT_SPINED, ID_EDIT_SPINFI, ID_EDIT_SPINFO, ID_EDIT_SPINX, ID_EDIT_SPINY,
+	ID_STATIC_X, ID_STATIC_Y, ID_STATIC_START, ID_STATIC_END, ID_STATIC_FIN, ID_STATIC_FOUT, 
+};
+static ITEM_SIZE defaultControls[_countof(TargetIDs)];
+
 //----------------------------
 //	関数プロトタイプ
 //----------------------------
 void on_wm_initdialog(HWND hdlg);
+static void on_wm_sizing(HWND hdlg, RECT *rect);
 BOOL on_IDOK(HWND hdlg);
 
 /*====================================================================
@@ -28,27 +37,11 @@ BOOL on_IDOK(HWND hdlg);
 *===================================================================*/
 BOOL CALLBACK EditDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	static ITEM_SIZE defualtWindow, defualtEditName;
-	static int TargetIDs[] ={
-		IDC_GROUP_FADE, IDC_GROUP_POS, ID_EDIT_X, ID_EDIT_Y, ID_EDIT_START, ID_EDIT_END, ID_EDIT_FIN, ID_EDIT_FOUT,
-		IDOK, IDCANCEL, ID_EDIT_SPINST, ID_EDIT_SPINED, ID_EDIT_SPINFI, ID_EDIT_SPINFO, ID_EDIT_SPINX, ID_EDIT_SPINY,
-		ID_STATIC_X, ID_STATIC_Y, ID_STATIC_START, ID_STATIC_END, ID_STATIC_FIN, ID_STATIC_FOUT, 
-	};
-	static ITEM_SIZE defualtControls[_countof(TargetIDs)];
-	static ITEM_SIZE border;
 	switch (msg) {
 		case WM_INITDIALOG:
 			owner = GetWindow(hdlg, GW_OWNER);
 			list_n = (int)lParam;
 			on_wm_initdialog(hdlg);
-			defualtWindow = GetSize(hdlg, nullptr, nullptr);
-			border = GetBorderSize(hdlg, defualtWindow);
-
-			defualtEditName = GetSize(GetDlgItem(hdlg, ID_EDIT_NAME), &defualtWindow, &border);
-
-			for (int i = 0; i < _countof(TargetIDs); i++) {
-				defualtControls[i] = GetSize(GetDlgItem(hdlg, TargetIDs[i]), &defualtWindow, &border);
-			}
 			break;
 
 		case WM_COMMAND:
@@ -64,27 +57,12 @@ BOOL CALLBACK EditDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_SIZING:
-			SendMessage(hdlg, WM_SETREDRAW, 0, 0);
-			RECT *rect = (RECT *)lParam;
-
-			rect->right  = max(rect->right, rect->left + defualtWindow.w);
-			rect->bottom = rect->top + defualtWindow.h;
-			int new_width = rect->right - rect->left;
-
-			SetWindowPos(GetDlgItem(hdlg, ID_EDIT_NAME), 0, 0, 0, defualtEditName.w + (new_width - defualtWindow.w), defualtEditName.h, SWP_NOMOVE | SWP_NOZORDER);
-
-			int group_fade_move_x = new_width / 2 - defualtControls[0].w / 2 - border.rect.left - defualtControls[0].rect.left;
-			for (int i = 0; i < _countof(TargetIDs); i++) {
-				MoveControl(hdlg, TargetIDs[i], &defualtControls[i], group_fade_move_x);
-			}
-			SendMessage(hdlg, WM_SETREDRAW, 1, 0);
-			InvalidateRect(hdlg,NULL,true);
+			on_wm_sizing(hdlg, (RECT *)lParam);
 			return TRUE;
 	}
 
 	return FALSE;
 }
-
 
 /*--------------------------------------------------------------------
 * 	on_wm_initdialog()	初期化
@@ -123,6 +101,28 @@ void on_wm_initdialog(HWND hdlg)
 	// キャプション
 	wsprintf(title, "%s - 編集", lp->name);
 	SetWindowText(hdlg, title);
+
+	get_initial_dialog_size(hdlg, defaultWindow, border, defaultControls, TargetIDs);
+}
+
+/*--------------------------------------------------------------------
+* 	on_wm_sizing()
+*-------------------------------------------------------------------*/
+static void on_wm_sizing(HWND hdlg, RECT *rect) {
+	SendMessage(hdlg, WM_SETREDRAW, 0, 0);
+
+	rect->right  = max(rect->right, rect->left + defaultWindow.w);
+	rect->bottom = rect->top + defaultWindow.h;
+	int new_width = rect->right - rect->left;
+
+	SetWindowPos(GetDlgItem(hdlg, TargetIDs[0]), 0, 0, 0, defaultControls[0].w + (new_width - defaultWindow.w), defaultControls[0].h, SWP_NOMOVE | SWP_NOZORDER);
+
+	int group_fade_move_x = new_width / 2 - defaultControls[1].w / 2 - border.rect.left - defaultControls[1].rect.left;
+	for (int i = 1; i < _countof(TargetIDs); i++) {
+		MoveControl(hdlg, TargetIDs[i], &defaultControls[i], group_fade_move_x);
+	}
+	SendMessage(hdlg, WM_SETREDRAW, 1, 0);
+	InvalidateRect(hdlg,NULL,true);
 }
 
 /*--------------------------------------------------------------------

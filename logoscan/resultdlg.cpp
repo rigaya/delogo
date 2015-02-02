@@ -33,6 +33,15 @@ static FILTER* delogofp;	// ロゴ消しフィルタFILTER構造体
 extern void* logodata;	// ロゴデータ（解析結果）[filter.cpp]
 extern char  filter_name[];	// フィルタ名 [filter.cpp]
 
+static ITEM_SIZE defaultWindow, border;
+static int TargetIDs[] ={
+	IDC_EDIT, IDC_GROUP, IDC_SEND, IDC_SAVE, IDC_CLOSE, IDC_PANEL,
+	IDC_RED, IDC_TEXT_R, IDC_SPINR,
+	IDC_GREEN, IDC_TEXT_G, IDC_SPING,
+	IDC_BLUE, IDC_TEXT_B, IDC_SPINB,
+};
+static ITEM_SIZE defaultControls[_countof(TargetIDs)];
+
 //----------------------------
 // 	プロトタイプ
 //----------------------------
@@ -43,6 +52,7 @@ static void ExportLogoData(char *fname, void *data, HWND hdlg);
 static void SendLogoData(HWND hdlg);
 static PIXEL_YC* get_bgyc(HWND hdlg);
 static void RGBtoYCbCr(PIXEL_YC *ycp, const PIXEL *rgb);
+static void on_wm_sizing(HWND hdlg, RECT *rect);
 
 
 /*====================================================================
@@ -50,25 +60,9 @@ static void RGBtoYCbCr(PIXEL_YC *ycp, const PIXEL *rgb);
 *===================================================================*/
 BOOL CALLBACK ResultDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	static ITEM_SIZE defualtWindow, defualtEditName;
-	static int TargetIDs[] ={
-		IDC_GROUP, IDC_SEND, IDC_SAVE, IDC_CLOSE, IDC_PANEL,
-		IDC_RED, IDC_TEXT_R, IDC_SPINR,
-		IDC_GREEN, IDC_TEXT_G, IDC_SPING,
-		IDC_BLUE, IDC_TEXT_B, IDC_SPINB,
-	};
-	static ITEM_SIZE defualtControls[_countof(TargetIDs)];
-	static ITEM_SIZE border;
 	switch (msg) {
 		case WM_INITDIALOG:
 			Wm_initdialog(hdlg);
-			defualtWindow = GetSize(hdlg, nullptr, nullptr);
-			border = GetBorderSize(hdlg, defualtWindow);
-			defualtEditName = GetSize(GetDlgItem(hdlg, IDC_EDIT), &defualtWindow, &border);
-
-			for (int i = 0; i < _countof(TargetIDs); i++) {
-				defualtControls[i] = GetSize(GetDlgItem(hdlg, TargetIDs[i]), &defualtWindow, &border);
-			}
 			break;
 
 		case WM_PAINT:
@@ -102,28 +96,13 @@ BOOL CALLBACK ResultDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_SIZING:
-			SendMessage(hdlg, WM_SETREDRAW, 0, 0);
-			RECT *rect = (RECT *)lParam;
-
-			rect->right  = max(rect->right, rect->left + defualtWindow.w);
-			rect->bottom = rect->top + defualtWindow.h;
-			int new_width = rect->right - rect->left;
-			
-			SetWindowPos(GetDlgItem(hdlg, IDC_EDIT), 0, 0, 0, defualtEditName.w + (new_width - defualtWindow.w), defualtEditName.h, SWP_NOMOVE | SWP_NOZORDER);
-			
-			int group_fade_move_x = new_width / 2 - defualtControls[0].w / 2 - border.rect.left - defualtControls[0].rect.left;
-			for (int i = 0; i < _countof(TargetIDs); i++) {
-				MoveControl(hdlg, TargetIDs[i], &defualtControls[i], group_fade_move_x);
-			}
-
-			SendMessage(hdlg, WM_SETREDRAW, 1, 0);
-			InvalidateRect(hdlg,NULL,true);
+			RECT rect = *(RECT *)lParam;
+			on_wm_sizing(hdlg, &rect);
 			return TRUE;
 	}
 
 	return FALSE;
 }
-
 
 /*--------------------------------------------------------------------
 * 	Wm_initdialog()		初期化
@@ -158,6 +137,29 @@ static void Wm_initdialog(HWND hdlg)
 	// みつからなかった時
 	delogofp = NULL;
 	EnableWindow(GetDlgItem(hdlg, IDC_SEND), FALSE); // 送信禁止
+
+	get_initial_dialog_size(hdlg, defaultWindow, border, defaultControls, TargetIDs);
+}
+
+/*--------------------------------------------------------------------
+* 	on_wm_sizing()
+*-------------------------------------------------------------------*/
+static void on_wm_sizing(HWND hdlg, RECT *rect) {
+	SendMessage(hdlg, WM_SETREDRAW, 0, 0);
+
+	rect->right  = max(rect->right, rect->left + defaultWindow.w);
+	rect->bottom = rect->top + defaultWindow.h;
+	int new_width = rect->right - rect->left;
+			
+	SetWindowPos(GetDlgItem(hdlg, IDC_EDIT), 0, 0, 0, defaultControls[0].w + (new_width - defaultWindow.w), defaultControls[0].h, SWP_NOMOVE | SWP_NOZORDER);
+			
+	int group_fade_move_x = new_width / 2 - defaultControls[1].w / 2 - border.rect.left - defaultControls[1].rect.left;
+	for (int i = 1; i < _countof(TargetIDs); i++) {
+		MoveControl(hdlg, TargetIDs[i], &defaultControls[i], group_fade_move_x);
+	}
+
+	SendMessage(hdlg, WM_SETREDRAW, 1, 0);
+	InvalidateRect(hdlg,NULL,true);
 }
 
 /*--------------------------------------------------------------------

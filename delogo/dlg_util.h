@@ -27,8 +27,8 @@ static ITEM_SIZE GetSize(HWND hwnd, ITEM_SIZE *parent, ITEM_SIZE *border) {
 	return size;
 }
 
-static void MoveControl(HWND hdlg, int ControlId, const ITEM_SIZE *defaultPos, int move) {
-	MoveWindow(GetDlgItem(hdlg, ControlId), defaultPos->rect.left + move, defaultPos->rect.top, defaultPos->w, defaultPos->h, TRUE);
+static void MoveControl(HWND hdlg, int ControlId, const ITEM_SIZE *defaultPos, int move_x, int move_y = 0) {
+	MoveWindow(GetDlgItem(hdlg, ControlId), defaultPos->rect.left + move_x, defaultPos->rect.top + move_y, defaultPos->w, defaultPos->h, TRUE);
 }
 
 static ITEM_SIZE GetBorderSize(HWND hdlg, const ITEM_SIZE& defualtWindow) {
@@ -44,6 +44,16 @@ static ITEM_SIZE GetBorderSize(HWND hdlg, const ITEM_SIZE& defualtWindow) {
 	border.rect.bottom = defualtWindow.rect.bottom - defualtWindow.rect.top - border.rect.top;
 	border.rect.right = defualtWindow.rect.right - defualtWindow.rect.left - border.rect.left;
 	return border;
+}
+
+template<size_t size>
+void get_initial_dialog_size(HWND hdlg, ITEM_SIZE& defualtWindow, ITEM_SIZE& border, ITEM_SIZE (&defualtControls)[size], int (&TargetIDs)[size]) {
+	defualtWindow = GetSize(hdlg, nullptr, nullptr);
+	border = GetBorderSize(hdlg, defualtWindow);
+
+	for (int i = 0; i < _countof(TargetIDs); i++) {
+		defualtControls[i] = GetSize(GetDlgItem(hdlg, TargetIDs[i]), &defualtWindow, &border);
+	}
 }
 
 #endif
