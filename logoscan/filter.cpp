@@ -67,6 +67,12 @@
 * 			→自前で変換。
 * 
 */
+/**********************************************************************
+  2015/01/31: ver 0.07+1 (rigaya)
+              ロゴ名の文字列を255文字までに拡張。
+              あわせて解析結果ダイアログのサイズを変更できるように。
+
+**********************************************************************/
 #include <windows.h>
 #include <stdlib.h>
 #include "filter.h"
@@ -104,7 +110,7 @@ void SetScanPixel(FILTER*, ScanPixel*&, int, int, int, int, void*, char*);
 //	FILTER_DLL構造体
 //----------------------------
 char filter_name[] = "ロゴ解析";
-char filter_info[] = "ロゴ解析プラグイン ver 0.07 by MakKi";
+char filter_info[] = "ロゴ解析プラグイン ver 0.07+1 by rigaya";
 
 #define track_N 5
 #if track_N
