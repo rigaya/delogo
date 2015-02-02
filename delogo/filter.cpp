@@ -1045,6 +1045,30 @@ static void del_combo_item(int num)
 }
 
 /*--------------------------------------------------------------------
+*	get_logo_file_header_ver() LOGO_HEADERのバージョンを取得
+*-------------------------------------------------------------------*/
+int get_logo_file_header_ver(const LOGO_FILE_HEADER *logo_file_header) {
+	int logo_header_ver = 0;
+	if (0 == strcmp(logo_file_header->str, LOGO_FILE_HEADER_STR)) {
+		logo_header_ver = 2;
+	} else if (0 == strcmp(logo_file_header->str, LOGO_FILE_HEADER_STR_OLD)) {
+		logo_header_ver = 1;
+	}
+	return logo_header_ver;
+}
+
+/*--------------------------------------------------------------------
+*	convert_logo_header_v1_to_v2() LOGO_HEADERをv1からv2に変換
+*-------------------------------------------------------------------*/
+void convert_logo_header_v1_to_v2(LOGO_HEADER *logo_header) {
+	LOGO_HEADER_OLD old_header;
+	memcpy(&old_header,       logo_header,      sizeof(old_header));
+	memset(logo_header,       0,                sizeof(logo_header[0]));
+	memcpy(logo_header->name, &old_header.name, sizeof(old_header.name));
+	memcpy(&logo_header->x,   &old_header.x,    sizeof(short) * 8);
+}
+
+/*--------------------------------------------------------------------
 * 	read_logo_pack()		ロゴデータ読み込み
 * 		ファイルからロゴデータを読み込み
 * 		コンボボックスにセット
@@ -1070,12 +1094,8 @@ static void read_logo_pack(char *fname, FILTER *fp)
 	LOGO_FILE_HEADER logo_file_header = { 0 };
 	ReadFile(hFile, &logo_file_header, sizeof(logo_file_header), &readed, NULL); // ファイルヘッダ取得
 
-	int logo_header_ver = 0;
-	if (0 == strcmp(logo_file_header.str, LOGO_FILE_HEADER_STR)) {
-		logo_header_ver = 2;
-	} else if (0 == strcmp(logo_file_header.str, LOGO_FILE_HEADER_STR_OLD)) {
-		logo_header_ver = 1;
-	} else {
+	int logo_header_ver = get_logo_file_header_ver(&logo_file_header);
+	if (logo_header_ver == 0) {
 		CloseHandle(hFile);
 		MessageBox(fp->hwnd, "ロゴデータファイルが不正です", filter_name, MB_OK|MB_ICONERROR);
 		return;
@@ -1097,11 +1117,7 @@ static void read_logo_pack(char *fname, FILTER *fp)
 			break;
 		}
 		if (logo_header_ver == 1) {
-			LOGO_HEADER_OLD old_header;
-			memcpy(&old_header,       &logo_header,     sizeof(old_header));
-			memset(&logo_header,      0,                sizeof(logo_header));
-			memcpy(&logo_header.name, &old_header.name, sizeof(old_header.name));
-			memcpy(&logo_header.x,    &old_header.x,    sizeof(short) * 8);
+			convert_logo_header_v1_to_v2(&logo_header);
 		}
 
 //  ldpには基本的に同名のロゴは存在しない

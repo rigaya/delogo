@@ -97,4 +97,14 @@ static inline int logo_data_size(LOGO_HEADER *ptr) {
 	return sizeof(LOGO_HEADER) + logo_pixel_size(ptr);
 }
 
+/*--------------------------------------------------------------------
+*	LOGO_HEADERのバージョンを取得
+*-------------------------------------------------------------------*/
+int get_logo_file_header_ver(const LOGO_FILE_HEADER *logo_file_header);
+
+/*--------------------------------------------------------------------
+*	LOGO_HEADERをv1からv2に変換
+*-------------------------------------------------------------------*/
+void convert_logo_header_v1_to_v2(LOGO_HEADER *logo_header);
+
 #endif
