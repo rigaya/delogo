@@ -118,18 +118,18 @@
 */
 
 /**************************************************************************************************
-*  2014/10/05
+*  2014/10/05 (+r01)
 *    delogo SIMD版 by rigaya
 *    ロゴ消し部分のSIMD化
 *
-*  2015/01/08
+*  2015/01/08 (+r02)
 *    トラックバーの上限を拡張しても、開始・終了などに256までの上限がかかる問題を修正。
 *    AVX2/SSE2版を少し高速化
 *
-*  2015/01/10
+*  2015/01/10 (+r03)
 *    トラックバーの上限を拡張しても、編集大アロログの入力欄に256までの上限がかかる問題を修正。
 *
-*  2015/01/31
+*  2015/02/03 (+r04)
 *    ロゴ名の文字列を255文字までに拡張。
 *    あわせて編集ダイアログのサイズを変更できるように。
 *
@@ -213,7 +213,7 @@ BOOL func_proc_add_logo(FILTER *fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int);
 //	FILTER_DLL構造体
 //----------------------------
 char filter_name[] = LOGO_FILTER_NAME;
-static char filter_info[] = LOGO_FILTER_NAME" ver 0.13 by MakKi";
+static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r04 by rigaya";
 #define track_N 10
 #if track_N
 static TCHAR *track_name[track_N] = { 	"位置 X", "位置 Y", 
