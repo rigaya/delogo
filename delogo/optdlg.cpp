@@ -188,17 +188,19 @@ static void Wm_initdialog(HWND hdlg)
 	SetDlgItemInt(hdlg, IDC_GREEN, 0, FALSE);
 	SetDlgItemInt(hdlg, IDC_BLUE,  0, FALSE);
 	bgyc = yc_black;
-
+	
 	// 一番上のリストアイテムを選択
-	SendDlgItemMessage(hdlg, IDC_LIST, LB_SETCURSEL, 0, 0);
+	//なぜか最初描画されないので、もう選択は諦める
+	//SendDlgItemMessage(hdlg, IDC_LIST, LB_SETCURSEL, 0, 0);
 
 	get_initial_dialog_size(hdlg, defaultWindow, border, defaultControls, TargetIDs);
+
+	//ダイアログのサイズを拡大する
 	MoveWindow(hdlg, defaultWindow.rect.left, defaultWindow.rect.top, 440, 520, TRUE);
 	RECT changed = defaultWindow.rect;
 	changed.right = changed.left + 440;
 	changed.bottom = changed.top + 520;
 	on_wm_sizing(hdlg, &changed);
-	DispLogo(hdlg);
 }
 
 /*--------------------------------------------------------------------
