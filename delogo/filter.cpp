@@ -1170,6 +1170,14 @@ static void read_logo_pack(char *fname, FILTER *fp)
 		// 拡張データ設定
 		memcpy(ex_data, logodata[0], LOGO_MAX_NAME);
 	}
+
+	if (logo_header_ver == 1) {
+		//古いロゴデータなら自動的にバックアップ
+		char backup_filename[1024];
+		strcpy_s(backup_filename, fname);
+		strcat_s(backup_filename, ".old_v1");
+		CopyFile(fname, backup_filename, FALSE);
+	}
 }
 
 /*--------------------------------------------------------------------
