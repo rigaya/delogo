@@ -9,11 +9,11 @@
 
 
 #include <windows.h>
-
+#include <vector>
 #include "filter.h"
 #include "logo.h"
 
-
+#define SCAN_BUFFER_SIZE 1024
 
 class ScanPixel {
 protected:
@@ -24,21 +24,19 @@ protected:
 	short*     lst_bgcb;	// 色差（青）
 	short*     lst_bgcr;	// 色差（赤）
 	unsigned int n;		// サンプル枚数
-	unsigned int bufsize;
 
+	std::vector<char *> compressed_datas;
+	std::vector<LOGO_PIXEL> buffer;
 public:
-	static unsigned int Defbuf;
-
-
 	ScanPixel(void);
 	~ScanPixel();
 
 	int  Alloc(unsigned int f);
 	int  AddSample(PIXEL_YC& ycp,PIXEL_YC& ycp_bg);
 	int  AddSample(PIXEL& rgb,PIXEL& rgb_bg);
-	int  EditSample(unsigned int num,PIXEL_YC& ycp,PIXEL_YC& ycp_bg);
-	int  EditSample(unsigned int num,PIXEL& rgb,PIXEL rgb_bg);
-	int  DeleteSample(unsigned int num);
+	//int  EditSample(unsigned int num,PIXEL_YC& ycp,PIXEL_YC& ycp_bg);
+	//int  EditSample(unsigned int num,PIXEL& rgb,PIXEL rgb_bg);
+	//int  DeleteSample(unsigned int num);
 	int  ClearSample(void);
 	int  GetLGP(LOGO_PIXEL& plgp);
 	int  GetAB_Y(double& A,double& B);

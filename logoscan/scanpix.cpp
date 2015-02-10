@@ -15,6 +15,7 @@
 #include "logo.h"
 #include "approxim.h"
 #include "scanpix.h"
+#include "../zlib/zlib.h"
 
 
 // エラーメッセージ
@@ -23,9 +24,6 @@ const char* CANNOT_GET_APPROXIMLINE = "サンプルが足りません\n背景色
 const char* NO_SAMPLE = "サンプルが足りません\nロゴの背景が単一色のサンプルを加えてください";
 
 #define DP_RANGE 0x3FFF
-
-unsigned int ScanPixel::Defbuf = 512;
-#define BUF_ADDSIZE  128;
 
 /*--------------------------------------------------------------------
 * 	RGBtoYCbCr()
@@ -61,19 +59,15 @@ inline T Abs(T x) {
 *===================================================================*/
 ScanPixel::ScanPixel(void)
 {
-	bufsize = Defbuf;
-	lst_y    = (short*)malloc(bufsize*sizeof(short)); //new short[bufsize];
-	lst_cb   = (short*)malloc(bufsize*sizeof(short)); //new short[bufsize];
-	lst_cr   = (short*)malloc(bufsize*sizeof(short)); //new short[bufsize];
-	lst_bgy  = (short*)malloc(bufsize*sizeof(short)); //new short[bufsize];
-	lst_bgcb = (short*)malloc(bufsize*sizeof(short)); //new short[bufsize];
-	lst_bgcr = (short*)malloc(bufsize*sizeof(short)); //new short[bufsize];
+	lst_y    = nullptr;
+	lst_cb   = nullptr;
+	lst_cr   = nullptr;
+	lst_bgy  = nullptr;
+	lst_bgcb = nullptr;
+	lst_bgcr = nullptr;
+	
+	buffer.reserve(SCAN_BUFFER_SIZE);
 	n = 0;
-
-	// メモリ確保失敗
-	if (lst_y==NULL || lst_cb==NULL || lst_cr==NULL ||
-		lst_bgy==NULL || lst_bgcb==NULL || lst_bgcr==NULL)
-			throw CANNOT_MALLOC;
 }
 
 /*====================================================================
@@ -81,13 +75,10 @@ ScanPixel::ScanPixel(void)
 *===================================================================*/
 ScanPixel::~ScanPixel()
 {
-	bufsize = 0;
-	if (lst_y)    free(lst_y);    //delete[] lst_y;
-	if (lst_cb)   free(lst_cb);   //delete[] lst_cb;
-	if (lst_cr)   free(lst_cr);   //delete[] lst_cr;
-	if (lst_bgy)  free(lst_bgy);  //delete[] lst_bgy;
-	if (lst_bgcb) free(lst_bgcb); //delete[] lst_bgcb;
-	if (lst_bgcr) free(lst_bgcr); //delete[] lst_bgcr;
+	ClearSample();
+
+	std::vector<char *>().swap(compressed_datas);
+	std::vector<LOGO_PIXEL>().swap(buffer);
 }
 
 /*====================================================================
@@ -97,17 +88,12 @@ ScanPixel::~ScanPixel()
 *===================================================================*/
 int ScanPixel::Alloc(unsigned int f)
 {
-	if (bufsize==f) return f;
-
-	bufsize = f;
-	if (f <= n) n = f-1;
-
-	lst_y    = (short*)realloc(lst_y,    f * sizeof(short)); //new short[f];
-	lst_cb   = (short*)realloc(lst_cb,   f * sizeof(short)); //new short[f];
-	lst_cr   = (short*)realloc(lst_cr,   f * sizeof(short)); //new short[f];
-	lst_bgy  = (short*)realloc(lst_bgy,  f * sizeof(short)); //new short[f];
-	lst_bgcb = (short*)realloc(lst_bgcb, f * sizeof(short)); //new short[f];
-	lst_bgcr = (short*)realloc(lst_bgcr, f * sizeof(short)); //new short[f];
+	lst_y    = (short*)malloc(f * sizeof(short)); //new short[f];
+	lst_cb   = (short*)malloc(f * sizeof(short)); //new short[f];
+	lst_cr   = (short*)malloc(f * sizeof(short)); //new short[f];
+	lst_bgy  = (short*)malloc(f * sizeof(short)); //new short[f];
+	lst_bgcb = (short*)malloc(f * sizeof(short)); //new short[f];
+	lst_bgcr = (short*)malloc(f * sizeof(short)); //new short[f];
 
 	// メモリ確保失敗
 	if (lst_y==NULL || lst_cb==NULL || lst_cr==NULL ||
@@ -124,28 +110,32 @@ int ScanPixel::Alloc(unsigned int f)
 // YCbCr用
 int ScanPixel::AddSample(PIXEL_YC& ycp, PIXEL_YC& ycp_bg)
 {
-	if (n>=bufsize) { // バッファが足りない時サイズ変更
-		bufsize += BUF_ADDSIZE;
-		lst_y    = (short*)realloc(lst_y,    bufsize * sizeof(short)); //new (lst_y)   short[bufsize];
-		lst_cb   = (short*)realloc(lst_cb,   bufsize * sizeof(short)); //new (lst_cb)  short[bufsize];
-		lst_cr   = (short*)realloc(lst_cr,   bufsize * sizeof(short)); //new (lst_cr)  short[bufsize];
-		lst_bgy  = (short*)realloc(lst_bgy,  bufsize * sizeof(short)); //new (lst_bgy) short[bufsize];
-		lst_bgcb = (short*)realloc(lst_bgcb, bufsize * sizeof(short)); //new (lst_bgcb)short[bufsize];
-		lst_bgcr = (short*)realloc(lst_bgcr, bufsize * sizeof(short)); //new (lst_bgcr)short[bufsize];
+	if (buffer.size() >= buffer.capacity()) {
+		unsigned long dst_bytes = (buffer.size() + 10) * sizeof(buffer[0]);
+		unsigned char *ptr_tmp = (unsigned char *)malloc(dst_bytes);
+		unsigned long src_bytes = buffer.size() * sizeof(buffer[0]);
+		compress2(ptr_tmp, &dst_bytes, (BYTE *)&buffer[0], src_bytes, 9);
 
-		// メモリ確保失敗
-		if (lst_y==NULL || lst_cb==NULL || lst_cr==NULL ||
-			lst_bgy==NULL || lst_bgcb==NULL || lst_bgcr==NULL)
-				throw CANNOT_MALLOC;
+		char *ptr_compressed = (char *)malloc(sizeof(unsigned short) + dst_bytes);
+		if (ptr_compressed == nullptr)
+			throw CANNOT_MALLOC;
+
+		*(unsigned short *)ptr_compressed = (unsigned short)dst_bytes;
+		memcpy(ptr_compressed + 2, ptr_tmp, dst_bytes);
+		compressed_datas.push_back(ptr_compressed);
+
+		buffer.clear();
+		free(ptr_tmp);
 	}
 
-	// 各要素配列の末尾に加える
-	lst_y[n]  = ycp.y;
-	lst_cb[n] = ycp.cb;
-	lst_cr[n] = ycp.cr;
-	lst_bgy[n]  = ycp_bg.y;
-	lst_bgcb[n] = ycp_bg.cb;
-	lst_bgcr[n] = ycp_bg.cr;
+	LOGO_PIXEL lp;
+	lp.y     = ycp.y;
+	lp.cb    = ycp.cb;
+	lp.cr    = ycp.cr;
+	lp.dp_y  = ycp_bg.y;
+	lp.dp_cb = ycp_bg.cb;
+	lp.dp_cr = ycp_bg.cr;
+	buffer.push_back(lp);
 
 	return (++n);
 }
@@ -162,7 +152,7 @@ int ScanPixel::AddSample(PIXEL& rgb, PIXEL& rgb_bg)
 
 	return AddSample(ycp, ycp_bg);
 }
-
+#if 0
 /*====================================================================
 * 	EditSample()
 * 		サンプルを書き換える
@@ -221,29 +211,32 @@ int ScanPixel::DeleteSample(unsigned int num)
 
 	return n;
 }
-
+#endif
 /*====================================================================
 * 	ClearSample()
 * 		全サンプルを削除する
 *===================================================================*/
 int ScanPixel::ClearSample(void)
 {
-	ScanPixel::~ScanPixel();
+	if (lst_y)    free(lst_y);    //delete[] lst_y;
+	if (lst_cb)   free(lst_cb);   //delete[] lst_cb;
+	if (lst_cr)   free(lst_cr);   //delete[] lst_cr;
+	if (lst_bgy)  free(lst_bgy);  //delete[] lst_bgy;
+	if (lst_bgcb) free(lst_bgcb); //delete[] lst_bgcb;
+	if (lst_bgcr) free(lst_bgcr); //delete[] lst_bgcr;
 
-	bufsize = 128;
-	lst_y    = (short*)malloc(bufsize * sizeof(short));	//new short[bufsize];
-	lst_cb   = (short*)malloc(bufsize * sizeof(short));	//new short[bufsize];
-	lst_cr   = (short*)malloc(bufsize * sizeof(short));	//new short[bufsize];
-	lst_bgy  = (short*)malloc(bufsize * sizeof(short));	//new short[bufsize];
-	lst_bgcb = (short*)malloc(bufsize * sizeof(short));	//new short[bufsize];
-	lst_bgcr = (short*)malloc(bufsize * sizeof(short));	//new short[bufsize];
-
-	// メモリ確保失敗
-	if (lst_y==NULL || lst_cb==NULL || lst_cr==NULL ||
-		lst_bgy==NULL || lst_bgcb==NULL || lst_bgcr==NULL)
-			throw CANNOT_MALLOC;
-
-	return n = 0;
+	for (auto ptr : compressed_datas)
+		if (ptr) free(ptr);
+	compressed_datas.clear();
+	
+	lst_y    = nullptr;
+	lst_cb   = nullptr;
+	lst_cr   = nullptr;
+	lst_bgy  = nullptr;
+	lst_bgcb = nullptr;
+	lst_bgcr = nullptr;
+	n = 0;
+	return 0;
 }
 
 /*====================================================================
@@ -253,6 +246,40 @@ int ScanPixel::ClearSample(void)
 int ScanPixel::GetLGP(LOGO_PIXEL& lgp)
 {
 	if (n<=1) throw NO_SAMPLE;
+
+	Alloc(n);
+
+	int i = 0;
+	
+	const unsigned long tmp_size = (buffer.capacity() + 10) * sizeof(buffer[0]);
+	unsigned char *ptr_tmp = (unsigned char *)malloc(tmp_size);
+	for (auto ptr_compressed_data : compressed_datas) {
+		unsigned long src_size = (*(unsigned short *)ptr_compressed_data);
+		char *ptr_src = ptr_compressed_data + 2;
+		unsigned long dst_size = tmp_size;
+		uncompress(ptr_tmp, &dst_size, (unsigned char *)ptr_src, src_size);
+
+		LOGO_PIXEL *logo_pixel = (LOGO_PIXEL *)ptr_tmp;
+
+		for (unsigned int j = 0; j < buffer.capacity(); i++, j++) {
+			lst_y[i]    = logo_pixel[j].y;
+			lst_cb[i]   = logo_pixel[j].cb;
+			lst_cr[i]   = logo_pixel[j].cr;
+			lst_bgy[i]  = logo_pixel[j].dp_y;
+			lst_bgcb[i] = logo_pixel[j].dp_cb;
+			lst_bgcr[i] = logo_pixel[j].dp_cr;
+		}
+	}
+	free(ptr_tmp);
+	
+	for (unsigned int j = 0; j < buffer.size(); i++, j++) {
+		lst_y[i]    = buffer[j].y;
+		lst_cb[i]   = buffer[j].cb;
+		lst_cr[i]   = buffer[j].cr;
+		lst_bgy[i]  = buffer[j].dp_y;
+		lst_bgcb[i] = buffer[j].dp_cb;
+		lst_bgcr[i] = buffer[j].dp_cr;
+	}
 
 	double A;
 	double B;
@@ -317,7 +344,6 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp)
 			lgp.cr = lgp.dp_cr = 0;
 		}
 	}
-
 	return n;
 }
 

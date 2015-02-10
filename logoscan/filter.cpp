@@ -519,7 +519,6 @@ void SetScanPixel(FILTER* fp, ScanPixel*& sp, int w, int h, int s, int e, void* 
 
 	// メモリ確保
 	if (sp) delete[] sp;
-	ScanPixel::Defbuf = 1024;
 	sp = new ScanPixel[fp->track[tLOGOW] * fp->track[tLOGOH]]; // 幅×高さの配列
 	if (sp == NULL)
 		throw "メモリが確保できませんでした";

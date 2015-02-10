@@ -171,6 +171,7 @@ void CreateLogoData(AbortDlgParam* p, HWND hdlg)
 	for (int i = 0; i < lgh.w * lgh.h; i++) {
 		SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETPOS, i, 0);
 		p->sp[i].GetLGP(lgp[i]);
+		p->sp[i].ClearSample();
 	}
 }
 
