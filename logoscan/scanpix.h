@@ -23,10 +23,12 @@ protected:
 	short*     lst_bgy; 	// 輝度
 	short*     lst_bgcb;	// 色差（青）
 	short*     lst_bgcr;	// 色差（赤）
-	unsigned int n;		// サンプル枚数
+	int n; // サンプル枚数
 
 	std::vector<char *> compressed_datas;
-	std::vector<PIXEL_YC> buffer;
+	
+	PIXEL_YC *buffer;
+	int buffer_idx;
 public:
 	ScanPixel(void);
 	~ScanPixel();

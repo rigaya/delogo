@@ -66,7 +66,8 @@ ScanPixel::ScanPixel(void)
 	lst_bgcb = nullptr;
 	lst_bgcr = nullptr;
 	
-	buffer.reserve(SCAN_BUFFER_SIZE);
+	buffer = (PIXEL_YC *)malloc(sizeof(PIXEL_YC) * SCAN_BUFFER_SIZE);
+	buffer_idx = 0;
 	n = 0;
 }
 
@@ -78,7 +79,6 @@ ScanPixel::~ScanPixel()
 	ClearSample();
 
 	std::vector<char *>().swap(compressed_datas);
-	std::vector<PIXEL_YC>().swap(buffer);
 }
 
 /*====================================================================
@@ -110,10 +110,10 @@ int ScanPixel::Alloc(unsigned int f)
 // YCbCr用
 int ScanPixel::AddSample(PIXEL_YC& ycp)
 {
-	if (buffer.size() >= buffer.capacity()) {
-		unsigned long dst_bytes = (buffer.size() + 10) * sizeof(buffer[0]);
+	if (buffer_idx >= SCAN_BUFFER_SIZE) {
+		unsigned long dst_bytes = (buffer_idx + 10) * sizeof(buffer[0]);
 		unsigned char *ptr_tmp = (unsigned char *)malloc(dst_bytes);
-		unsigned long src_bytes = buffer.size() * sizeof(buffer[0]);
+		unsigned long src_bytes = buffer_idx * sizeof(buffer[0]);
 		compress2(ptr_tmp, &dst_bytes, (BYTE *)&buffer[0], src_bytes, 9);
 
 		char *ptr_compressed = (char *)malloc(sizeof(unsigned short) + dst_bytes);
@@ -124,10 +124,11 @@ int ScanPixel::AddSample(PIXEL_YC& ycp)
 		memcpy(ptr_compressed + 2, ptr_tmp, dst_bytes);
 		compressed_datas.push_back(ptr_compressed);
 
-		buffer.clear();
+		buffer_idx = 0;
 		free(ptr_tmp);
 	}
-	buffer.push_back(ycp);
+	buffer[buffer_idx] = ycp;
+	buffer_idx++;
 	return (++n);
 }
 
@@ -219,6 +220,8 @@ int ScanPixel::ClearSample(void)
 	for (auto ptr : compressed_datas)
 		if (ptr) free(ptr);
 	compressed_datas.clear();
+
+	if (buffer) free(buffer);
 	
 	lst_y    = nullptr;
 	lst_cb   = nullptr;
@@ -227,6 +230,9 @@ int ScanPixel::ClearSample(void)
 	lst_bgcb = nullptr;
 	lst_bgcr = nullptr;
 	n = 0;
+
+	buffer = nullptr;
+	buffer_idx = 0;
 	return 0;
 }
 
@@ -240,7 +246,7 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const std::vector<PIXEL_YC>& bg)
 
 	Alloc(n);
 	
-	const unsigned long tmp_size = (buffer.capacity() + 10) * sizeof(buffer[0]);
+	const unsigned long tmp_size = (SCAN_BUFFER_SIZE + 10) * sizeof(buffer[0]);
 	unsigned char *ptr_tmp = (unsigned char *)malloc(tmp_size);
 	if (ptr_tmp == nullptr)
 		throw CANNOT_MALLOC;
@@ -254,7 +260,7 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const std::vector<PIXEL_YC>& bg)
 
 		PIXEL_YC *logo_pixel = (PIXEL_YC *)ptr_tmp;
 
-		for (unsigned int j = 0; j < buffer.capacity(); i++, j++) {
+		for (unsigned int j = 0; j < SCAN_BUFFER_SIZE; i++, j++) {
 			lst_y[i]  = logo_pixel[j].y;
 			lst_cb[i] = logo_pixel[j].cb;
 			lst_cr[i] = logo_pixel[j].cr;
@@ -262,13 +268,13 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const std::vector<PIXEL_YC>& bg)
 	}
 	free(ptr_tmp);
 	
-	for (unsigned int j = 0; j < buffer.size(); i++, j++) {
+	for (int j = 0; j < buffer_idx; i++, j++) {
 		lst_y[i]  = buffer[j].y;
 		lst_cb[i] = buffer[j].cb;
 		lst_cr[i] = buffer[j].cr;
 	}
 
-	for (unsigned int j = 0; j < n; j++) {
+	for (int j = 0; j < n; j++) {
 		lst_bgy[j]  = bg[j].y;
 		lst_bgcb[j] = bg[j].cb;
 		lst_bgcr[j] = bg[j].cr;
