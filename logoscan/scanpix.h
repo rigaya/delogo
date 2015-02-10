@@ -26,19 +26,19 @@ protected:
 	unsigned int n;		// サンプル枚数
 
 	std::vector<char *> compressed_datas;
-	std::vector<LOGO_PIXEL> buffer;
+	std::vector<PIXEL_YC> buffer;
 public:
 	ScanPixel(void);
 	~ScanPixel();
 
 	int  Alloc(unsigned int f);
-	int  AddSample(PIXEL_YC& ycp,PIXEL_YC& ycp_bg);
-	int  AddSample(PIXEL& rgb,PIXEL& rgb_bg);
+	int  AddSample(PIXEL_YC& ycp);
+	//int  AddSample(PIXEL& rgb,PIXEL& rgb_bg);
 	//int  EditSample(unsigned int num,PIXEL_YC& ycp,PIXEL_YC& ycp_bg);
 	//int  EditSample(unsigned int num,PIXEL& rgb,PIXEL rgb_bg);
 	//int  DeleteSample(unsigned int num);
 	int  ClearSample(void);
-	int  GetLGP(LOGO_PIXEL& plgp);
+	int  GetLGP(LOGO_PIXEL& plgp, const std::vector<PIXEL_YC>& bg);
 	int  GetAB_Y(double& A,double& B);
 	int  GetAB_Cb(double& A,double& B);
 	int  GetAB_Cr(double& A,double& B);

@@ -116,11 +116,12 @@ BOOL CALLBACK AbortDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 							fprintf(p->list, "%d\n", p->s + examine + 1);
 						}
 
+						p->bg.push_back(bg);
 						// ロゴサンプルセット
 						for (int i = 0; i < xywh.h; i++) {
 							for (int j = 0; j < xywh.w; j++) {
 								PIXEL_YC ptr = pix[(xywh.y + i) * p->max_w + xywh.x + j];
-								p->sp[i * xywh.w + j].AddSample(ptr, bg); // X軸:背景
+								p->sp[i * xywh.w + j].AddSample(ptr); // X軸:背景
 							}
 						}
 					}
@@ -170,7 +171,7 @@ void CreateLogoData(AbortDlgParam* p, HWND hdlg)
 	
 	for (int i = 0; i < lgh.w * lgh.h; i++) {
 		SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETPOS, i, 0);
-		p->sp[i].GetLGP(lgp[i]);
+		p->sp[i].GetLGP(lgp[i], p->bg);
 		p->sp[i].ClearSample();
 	}
 }

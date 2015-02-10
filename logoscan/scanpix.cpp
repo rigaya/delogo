@@ -78,7 +78,7 @@ ScanPixel::~ScanPixel()
 	ClearSample();
 
 	std::vector<char *>().swap(compressed_datas);
-	std::vector<LOGO_PIXEL>().swap(buffer);
+	std::vector<PIXEL_YC>().swap(buffer);
 }
 
 /*====================================================================
@@ -108,7 +108,7 @@ int ScanPixel::Alloc(unsigned int f)
 * 		サンプルをバッファに加える
 *===================================================================*/
 // YCbCr用
-int ScanPixel::AddSample(PIXEL_YC& ycp, PIXEL_YC& ycp_bg)
+int ScanPixel::AddSample(PIXEL_YC& ycp)
 {
 	if (buffer.size() >= buffer.capacity()) {
 		unsigned long dst_bytes = (buffer.size() + 10) * sizeof(buffer[0]);
@@ -127,19 +127,11 @@ int ScanPixel::AddSample(PIXEL_YC& ycp, PIXEL_YC& ycp_bg)
 		buffer.clear();
 		free(ptr_tmp);
 	}
-
-	LOGO_PIXEL lp;
-	lp.y     = ycp.y;
-	lp.cb    = ycp.cb;
-	lp.cr    = ycp.cr;
-	lp.dp_y  = ycp_bg.y;
-	lp.dp_cb = ycp_bg.cb;
-	lp.dp_cr = ycp_bg.cr;
-	buffer.push_back(lp);
-
+	buffer.push_back(ycp);
 	return (++n);
 }
 
+#if 0
 //--------------------------------------------------------------------
 // RGB用
 int ScanPixel::AddSample(PIXEL& rgb, PIXEL& rgb_bg)
@@ -152,7 +144,6 @@ int ScanPixel::AddSample(PIXEL& rgb, PIXEL& rgb_bg)
 
 	return AddSample(ycp, ycp_bg);
 }
-#if 0
 /*====================================================================
 * 	EditSample()
 * 		サンプルを書き換える
@@ -243,42 +234,44 @@ int ScanPixel::ClearSample(void)
 * 	GetLGP()
 * 		LOGO_PIXELを返す
 *===================================================================*/
-int ScanPixel::GetLGP(LOGO_PIXEL& lgp)
+int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const std::vector<PIXEL_YC>& bg)
 {
 	if (n<=1) throw NO_SAMPLE;
 
 	Alloc(n);
-
-	int i = 0;
 	
 	const unsigned long tmp_size = (buffer.capacity() + 10) * sizeof(buffer[0]);
 	unsigned char *ptr_tmp = (unsigned char *)malloc(tmp_size);
+	if (ptr_tmp == nullptr)
+		throw CANNOT_MALLOC;
+	
+	int i = 0;
 	for (auto ptr_compressed_data : compressed_datas) {
 		unsigned long src_size = (*(unsigned short *)ptr_compressed_data);
 		char *ptr_src = ptr_compressed_data + 2;
 		unsigned long dst_size = tmp_size;
 		uncompress(ptr_tmp, &dst_size, (unsigned char *)ptr_src, src_size);
 
-		LOGO_PIXEL *logo_pixel = (LOGO_PIXEL *)ptr_tmp;
+		PIXEL_YC *logo_pixel = (PIXEL_YC *)ptr_tmp;
 
 		for (unsigned int j = 0; j < buffer.capacity(); i++, j++) {
-			lst_y[i]    = logo_pixel[j].y;
-			lst_cb[i]   = logo_pixel[j].cb;
-			lst_cr[i]   = logo_pixel[j].cr;
-			lst_bgy[i]  = logo_pixel[j].dp_y;
-			lst_bgcb[i] = logo_pixel[j].dp_cb;
-			lst_bgcr[i] = logo_pixel[j].dp_cr;
+			lst_y[i]  = logo_pixel[j].y;
+			lst_cb[i] = logo_pixel[j].cb;
+			lst_cr[i] = logo_pixel[j].cr;
 		}
 	}
 	free(ptr_tmp);
 	
 	for (unsigned int j = 0; j < buffer.size(); i++, j++) {
-		lst_y[i]    = buffer[j].y;
-		lst_cb[i]   = buffer[j].cb;
-		lst_cr[i]   = buffer[j].cr;
-		lst_bgy[i]  = buffer[j].dp_y;
-		lst_bgcb[i] = buffer[j].dp_cb;
-		lst_bgcr[i] = buffer[j].dp_cr;
+		lst_y[i]  = buffer[j].y;
+		lst_cb[i] = buffer[j].cb;
+		lst_cr[i] = buffer[j].cr;
+	}
+
+	for (unsigned int j = 0; j < n; j++) {
+		lst_bgy[j]  = bg[j].y;
+		lst_bgcb[j] = bg[j].cb;
+		lst_bgcr[j] = bg[j].cr;
 	}
 
 	double A;

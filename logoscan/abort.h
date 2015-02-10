@@ -17,18 +17,18 @@
 // 中断ウィンドウ関数
 BOOL CALLBACK AbortDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
-
 struct AbortDlgParam {
-	FILTER*     fp;
-	void*       editp;
-	ScanPixel*  sp;
-	int         s, e;
-	int         max_w;
-	int         x, y, w, h, t;
-	void**      data;
-	const char* errstr;
-	int         mark;
-	FILE*       list;
+	FILTER*               fp;
+	void*                 editp;
+	ScanPixel*            sp;
+	std::vector<PIXEL_YC> bg;
+	int                   s, e;
+	int                   max_w;
+	int                   x, y, w, h, t;
+	void**                data;
+	const char*           errstr;
+	int                   mark;
+	FILE*                 list;
 };
 
 #endif
