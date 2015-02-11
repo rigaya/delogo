@@ -13,7 +13,7 @@
 #include "filter.h"
 #include "logo.h"
 
-#define SCAN_BUFFER_SIZE 1024
+#define SCAN_BUFFER_SIZE 256
 
 class ScanPixel {
 protected:
@@ -25,8 +25,10 @@ protected:
 	short*     lst_bgcr;	// 色差（赤）
 	int n; // サンプル枚数
 
-	std::vector<char *> compressed_datas;
-	
+	char** compressed_datas;
+	int    compressed_data_n;
+	int    compressed_data_idx;
+
 	PIXEL_YC *buffer;
 	int buffer_idx;
 public:

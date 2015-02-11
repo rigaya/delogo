@@ -65,6 +65,10 @@ ScanPixel::ScanPixel(void)
 	lst_bgy  = nullptr;
 	lst_bgcb = nullptr;
 	lst_bgcr = nullptr;
+
+	compressed_datas = nullptr;
+	compressed_data_idx = 0;
+	compressed_data_n = 0;
 	
 	buffer = (PIXEL_YC *)malloc(sizeof(PIXEL_YC) * SCAN_BUFFER_SIZE);
 	buffer_idx = 0;
@@ -77,8 +81,6 @@ ScanPixel::ScanPixel(void)
 ScanPixel::~ScanPixel()
 {
 	ClearSample();
-
-	std::vector<char *>().swap(compressed_datas);
 }
 
 /*====================================================================
@@ -122,7 +124,13 @@ int ScanPixel::AddSample(PIXEL_YC& ycp)
 
 		*(unsigned short *)ptr_compressed = (unsigned short)dst_bytes;
 		memcpy(ptr_compressed + 2, ptr_tmp, dst_bytes);
-		compressed_datas.push_back(ptr_compressed);
+
+		if (compressed_data_idx >= compressed_data_n) {
+			compressed_data_n += 4;
+			compressed_datas = (char **)realloc(compressed_datas, sizeof(compressed_datas[0]) * compressed_data_n);
+		}
+		compressed_datas[compressed_data_idx] = ptr_compressed;
+		compressed_data_idx++;
 
 		buffer_idx = 0;
 		free(ptr_tmp);
@@ -217,11 +225,21 @@ int ScanPixel::ClearSample(void)
 	if (lst_bgcb) free(lst_bgcb); //delete[] lst_bgcb;
 	if (lst_bgcr) free(lst_bgcr); //delete[] lst_bgcr;
 
-	for (auto ptr : compressed_datas)
-		if (ptr) free(ptr);
-	compressed_datas.clear();
+	if (compressed_datas) {
+		for (int i = 0; i < compressed_data_idx; i++) {
+			if (compressed_datas[i]) {
+				free(compressed_datas[i]);
+			}
+		}
+		free(compressed_datas);
+	}
+	compressed_data_idx = 0;
+	compressed_data_n = 0;
+	compressed_datas = nullptr;
 
 	if (buffer) free(buffer);
+	buffer = nullptr;
+	buffer_idx = 0;
 	
 	lst_y    = nullptr;
 	lst_cb   = nullptr;
@@ -231,8 +249,6 @@ int ScanPixel::ClearSample(void)
 	lst_bgcr = nullptr;
 	n = 0;
 
-	buffer = nullptr;
-	buffer_idx = 0;
 	return 0;
 }
 
@@ -252,7 +268,8 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const std::vector<PIXEL_YC>& bg)
 		throw CANNOT_MALLOC;
 	
 	int i = 0;
-	for (auto ptr_compressed_data : compressed_datas) {
+	for (; i < compressed_data_idx; i++) {
+		char *ptr_compressed_data = compressed_datas[i];
 		unsigned long src_size = (*(unsigned short *)ptr_compressed_data);
 		char *ptr_src = ptr_compressed_data + 2;
 		unsigned long dst_size = tmp_size;
