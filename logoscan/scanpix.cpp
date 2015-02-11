@@ -254,8 +254,8 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const short *lst_bgy, const short *lst_bg
 		throw CANNOT_MALLOC;
 	
 	int i = 0;
-	for (; i < compressed_data_idx; i++) {
-		char *ptr_compressed_data = compressed_datas[i];
+	for (int k = 0; k < compressed_data_idx; k++) {
+		char *ptr_compressed_data = compressed_datas[k];
 		unsigned long src_size = (*(unsigned short *)ptr_compressed_data);
 		char *ptr_src = ptr_compressed_data + 2;
 		unsigned long dst_size = tmp_size;
