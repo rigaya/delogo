@@ -1185,7 +1185,7 @@ static void read_logo_pack(char *fname, FILTER *fp)
 		CopyFile(fname, backup_filename, FALSE);
 	}
 
-	if (logo_header_ver == 2 && 0 == _stricmp(".ldp", PathFindExtension(fname))) {
+	if (0 == _stricmp(".ldp", PathFindExtension(fname))) {
 		//新しい形式だが、拡張子がldp2になっていなければ、変更する
 		char new_filename[1024];
 		strcpy_s(new_filename, fname);
