@@ -20,7 +20,6 @@ protected:
 	short*     lst_y;
 	short*     lst_cb;
 	short*     lst_cr;
-	int n; // サンプル枚数
 
 	char** compressed_datas;
 	int    compressed_data_n;

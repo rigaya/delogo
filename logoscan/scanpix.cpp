@@ -69,7 +69,6 @@ ScanPixel::ScanPixel(void)
 	
 	buffer = (PIXEL_YC *)malloc(sizeof(PIXEL_YC) * SCAN_BUFFER_SIZE);
 	buffer_idx = 0;
-	n = 0;
 }
 
 /*====================================================================
@@ -130,7 +129,7 @@ int ScanPixel::AddSample(PIXEL_YC& ycp)
 	}
 	buffer[buffer_idx] = ycp;
 	buffer_idx++;
-	return (++n);
+	return 0;
 }
 
 #if 0
@@ -234,7 +233,6 @@ int ScanPixel::ClearSample(void)
 	lst_y    = nullptr;
 	lst_cb   = nullptr;
 	lst_cr   = nullptr;
-	n = 0;
 
 	return 0;
 }
@@ -245,6 +243,7 @@ int ScanPixel::ClearSample(void)
 *===================================================================*/
 int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const short *lst_bgy, const short *lst_bgcb, const short *lst_bgcr)
 {
+	int n = compressed_data_idx * SCAN_BUFFER_SIZE + buffer_idx;
 	if (n<=1) throw NO_SAMPLE;
 
 	Alloc(n);
