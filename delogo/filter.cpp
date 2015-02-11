@@ -137,6 +137,8 @@
 
 #include <windows.h>
 #include <commctrl.h>
+#include <shlwapi.h>
+#pragma comment(lib, "shlwapi.lib")
 #include <math.h>
 #include "filter.h"
 #include "logo.h"
@@ -157,8 +159,8 @@
 
 
 #define LDP_KEY     "logofile"
-#define LDP_DEFAULT "logodata.ldp"
-#define LDP_FILTER  "ロゴデータパック (*.ldp)\0*.ldp\0"\
+#define LDP_DEFAULT "logodata.ldp2"
+#define LDP_FILTER  "ロゴデータパック (*.ldp; *.ldp2)\0*.ldp;*.ldp2\0"\
                     "AllFiles (*.*)\0*.*\0"
 
 
@@ -1177,6 +1179,16 @@ static void read_logo_pack(char *fname, FILTER *fp)
 		strcpy_s(backup_filename, fname);
 		strcat_s(backup_filename, ".old_v1");
 		CopyFile(fname, backup_filename, FALSE);
+	}
+
+	if (logo_header_ver == 2 && 0 == _stricmp(".ldp", PathFindExtension(fname))) {
+		//新しい形式だが、拡張子がldp2になっていなければ、変更する
+		char new_filename[1024];
+		strcpy_s(new_filename, fname);
+		strcat_s(new_filename, "2");
+		if (MoveFile(fname, new_filename) && 0 == _stricmp(logodata_file, fname)) {
+			strcpy_s(logodata_file, new_filename);
+		}
 	}
 }
 

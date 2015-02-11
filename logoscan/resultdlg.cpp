@@ -16,8 +16,8 @@
 #include "dlg_util.h"
 
 
-#define LGD_FILTER  "ロゴデータファイル (*.lgd)\0*.lgd\0全てのファイル (*.*)\0*.*\0"
-#define LGD_DEFAULT "*.lgd"
+#define LGD_FILTER  "ロゴデータファイル (*.lgd2)\0*.lgd2\0全てのファイル (*.*)\0*.*\0"
+#define LGD_DEFAULT "*.lgd2"
 
 
 FILTER* dlgfp;	// FILTER構造体
