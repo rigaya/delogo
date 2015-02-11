@@ -104,13 +104,13 @@ inline void SetXYWH(FILTER* fp, void* editp);
 inline void SetRange(FILTER* fp, void* editp);
 inline void FixXYWH(FILTER* fp, void* editp);
 void ScanLogoData(FILTER* fp, void* editp);
-void SetScanPixel(FILTER*, ScanPixel*&, int, int, int, int, void*, char*);
+SCAN_PIXEL *SetScanPixel(FILTER* fp, int w, int h, int s, int e, void* editp, char* list);
 
 //----------------------------
 //	FILTER_DLL構造体
 //----------------------------
 char filter_name[] = "ロゴ解析";
-char filter_info[] = "ロゴ解析プラグイン ver 0.07+1 by rigaya";
+char filter_info[] = "ロゴ解析プラグイン ver 0.07+2 by rigaya";
 
 #define track_N 5
 #if track_N
@@ -428,7 +428,7 @@ void ScanLogoData(FILTER* fp, void* editp)
 	int frame;      // 現在の表示フレーム
 	char list[MAX_PATH] = "\0";	// フレームリストファイル名
 
-	ScanPixel* sp = NULL;
+	SCAN_PIXEL* sp = NULL;
 
 	try {
 		if (fp->exfunc->is_filter_active(fp) == FALSE)	// フィルタが有効でない時
@@ -472,11 +472,11 @@ void ScanLogoData(FILTER* fp, void* editp)
 		}
 
 		// ScanPixelを設定する+解析・ロゴデータ作成
-		SetScanPixel(fp, sp, w, h, start, end, editp, list);
+		sp = SetScanPixel(fp, w, h, start, end, editp, list);
 	} catch (const char* str) {
 		MessageBox(fp->hwnd, str, filter_name, MB_OK|MB_ICONERROR);
-		if (sp) delete[] sp;
-		sp = NULL;
+		if (sp) free(sp);
+		sp = nullptr;
 		if (logodata) delete[] logodata;
 		logodata = NULL;
 		EnableWindow(scanbtn,TRUE); // ボタンを有効に戻す
@@ -485,8 +485,8 @@ void ScanLogoData(FILTER* fp, void* editp)
 	}
 
 	if (sp) {
-		delete[] sp;
-		sp = NULL;
+		free(sp);
+		sp = nullptr;
 	}
 
 
@@ -508,8 +508,7 @@ void ScanLogoData(FILTER* fp, void* editp)
 /*--------------------------------------------------------------------
 *	ScanPixelを設定する
 *-------------------------------------------------------------------*/
-void SetScanPixel(FILTER* fp, ScanPixel*& sp, int w, int h, int s, int e, void* editp, char* list)
-{
+SCAN_PIXEL *SetScanPixel(FILTER* fp, int w, int h, int s, int e, void* editp, char* list) {
 	// 範囲チェック
 	if (fp->track[tLOGOW]<=0 || fp->track[tLOGOH]<=0)
 		throw "領域が指定されていません";
@@ -518,9 +517,8 @@ void SetScanPixel(FILTER* fp, ScanPixel*& sp, int w, int h, int s, int e, void* 
 			throw "領域の一部が画面外です";
 
 	// メモリ確保
-	if (sp) delete[] sp;
-	sp = new ScanPixel[fp->track[tLOGOW] * fp->track[tLOGOH]]; // 幅×高さの配列
-	if (sp == NULL)
+	SCAN_PIXEL *sp = (SCAN_PIXEL *)calloc(fp->track[tLOGOW] * fp->track[tLOGOH], sizeof(sp[0]));
+	if (sp == nullptr)
 		throw "メモリが確保できませんでした";
 
 	AbortDlgParam param;
@@ -555,6 +553,8 @@ void SetScanPixel(FILTER* fp, ScanPixel*& sp, int w, int h, int s, int e, void* 
 
 	if (param.errstr)
 		throw param.errstr;
+
+	return sp;
 }
 
 

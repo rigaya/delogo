@@ -55,38 +55,20 @@ inline T Abs(T x) {
 }
 
 /*====================================================================
-* 	コンストラクタ
-*===================================================================*/
-ScanPixel::ScanPixel(void)
-{
-	compressed_datas = nullptr;
-	compressed_data_idx = 0;
-	compressed_data_n = 0;
-	
-	buffer = (PIXEL_YC *)malloc(sizeof(PIXEL_YC) * SCAN_BUFFER_SIZE);
-	buffer_idx = 0;
-}
-
-/*====================================================================
-* 	デストラクタ
-*===================================================================*/
-ScanPixel::~ScanPixel()
-{
-	ClearSample();
-}
-
-/*====================================================================
 * 	AddSample()
 * 		サンプルをバッファに加える
 *===================================================================*/
 // YCbCr用
-int ScanPixel::AddSample(PIXEL_YC& ycp)
-{
-	if (buffer_idx >= SCAN_BUFFER_SIZE) {
-		unsigned long dst_bytes = (buffer_idx + 10) * sizeof(buffer[0]);
+int AddSample(SCAN_PIXEL *sp, const PIXEL_YC& ycp) {
+	if (sp->buffer == nullptr) {
+		sp->buffer = (PIXEL_YC *)malloc(sizeof(PIXEL_YC) * SCAN_BUFFER_SIZE);
+		sp->buffer_idx = 0;
+	}
+	if (sp->buffer_idx >= SCAN_BUFFER_SIZE) {
+		unsigned long dst_bytes = (sp->buffer_idx + 10) * sizeof(sp->buffer[0]);
 		unsigned char *ptr_tmp = (unsigned char *)malloc(dst_bytes);
-		unsigned long src_bytes = buffer_idx * sizeof(buffer[0]);
-		compress2(ptr_tmp, &dst_bytes, (BYTE *)&buffer[0], src_bytes, 9);
+		unsigned long src_bytes = sp->buffer_idx * sizeof(sp->buffer[0]);
+		compress2(ptr_tmp, &dst_bytes, (BYTE *)&sp->buffer[0], src_bytes, 9);
 
 		char *ptr_compressed = (char *)malloc(sizeof(unsigned short) + dst_bytes);
 		if (ptr_compressed == nullptr)
@@ -95,114 +77,37 @@ int ScanPixel::AddSample(PIXEL_YC& ycp)
 		*(unsigned short *)ptr_compressed = (unsigned short)dst_bytes;
 		memcpy(ptr_compressed + 2, ptr_tmp, dst_bytes);
 
-		if (compressed_data_idx >= compressed_data_n) {
-			compressed_data_n += 4;
-			compressed_datas = (char **)realloc(compressed_datas, sizeof(compressed_datas[0]) * compressed_data_n);
+		if (sp->compressed_data_idx >= sp->compressed_data_n) {
+			sp->compressed_data_n += 4;
+			sp->compressed_datas = (char **)realloc(sp->compressed_datas, sizeof(sp->compressed_datas[0]) * sp->compressed_data_n);
 		}
-		compressed_datas[compressed_data_idx] = ptr_compressed;
-		compressed_data_idx++;
+		sp->compressed_datas[sp->compressed_data_idx] = ptr_compressed;
+		sp->compressed_data_idx++;
 
-		buffer_idx = 0;
+		sp->buffer_idx = 0;
 		free(ptr_tmp);
 	}
-	buffer[buffer_idx] = ycp;
-	buffer_idx++;
+	sp->buffer[sp->buffer_idx] = ycp;
+	sp->buffer_idx++;
 	return 0;
 }
-
-#if 0
-//--------------------------------------------------------------------
-// RGB用
-int ScanPixel::AddSample(PIXEL& rgb, PIXEL& rgb_bg)
-{
-	PIXEL_YC ycp, ycp_bg;
-
-	// RGB->YC2
-	RGBtoYCbCr(ycp, rgb);
-	RGBtoYCbCr(ycp_bg, rgb_bg);
-
-	return AddSample(ycp, ycp_bg);
-}
-/*====================================================================
-* 	EditSample()
-* 		サンプルを書き換える
-*===================================================================*/
-// YCbCr用
-int ScanPixel::EditSample(unsigned int num, PIXEL_YC& ycp, PIXEL_YC& ycp_bg)
-{
-	if (num >= n) // num番目の要素が存在しない時
-		return AddSample(ycp, ycp_bg);
-
-	lst_y[num]  = ycp.y;
-	lst_cb[num] = ycp.cb;
-	lst_cr[num] = ycp.cr;
-	lst_bgy[num]  = ycp_bg.y;
-	lst_bgcb[num] = ycp_bg.cb;
-	lst_bgcr[num] = ycp_bg.cr;
-
-	return num;
-}
-
-
-//--------------------------------------------------------------------
-// RGB用
-int ScanPixel::EditSample(unsigned int num, PIXEL& rgb, PIXEL rgb_bg)
-{
-	PIXEL_YC ycp, ycp_bg;
-
-	// RGB->YC2
-	RGBtoYCbCr(ycp, rgb);
-	RGBtoYCbCr(ycp_bg, rgb_bg);
-
-	return EditSample(num, ycp, ycp_bg);
-}
-
-/*====================================================================
-* 	DeleteSample()
-* 		サンプルを削除する
-*===================================================================*/
-int ScanPixel::DeleteSample(unsigned int num)
-{
-	n--;
-
-	if (n <= 0) // サンプルが０以下になるとき
-		return ClearSample();
-
-	if (n == num) // 最後のサンプルを削除する時
-		return n; // nを減らすだけ
-
-	// 次のサンプルから一つ前にコピー
-	memcpy(&lst_y[num],    &lst_y[num+1],    (n-num) * sizeof(short));
-	memcpy(&lst_cb[num],   &lst_cb[num+1],   (n-num) * sizeof(short));
-	memcpy(&lst_cr[num],   &lst_cr[num+1],   (n-num) * sizeof(short));
-	memcpy(&lst_bgy[num],  &lst_bgy[num+1],  (n-num) * sizeof(short));
-	memcpy(&lst_bgcb[num], &lst_bgcb[num+1], (n-num) * sizeof(short));
-	memcpy(&lst_bgcr[num], &lst_bgcr[num+1], (n-num) * sizeof(short));
-
-	return n;
-}
-#endif
 /*====================================================================
 * 	ClearSample()
 * 		全サンプルを削除する
 *===================================================================*/
-int ScanPixel::ClearSample(void)
-{
-	if (compressed_datas) {
-		for (int i = 0; i < compressed_data_idx; i++) {
-			if (compressed_datas[i]) {
-				free(compressed_datas[i]);
+int ClearSample(SCAN_PIXEL *sp) {
+	if (sp->compressed_datas) {
+		for (int i = 0; i < sp->compressed_data_idx; i++) {
+			if (sp->compressed_datas[i]) {
+				free(sp->compressed_datas[i]);
 			}
 		}
-		free(compressed_datas);
+		free(sp->compressed_datas);
 	}
-	compressed_data_idx = 0;
-	compressed_data_n = 0;
-	compressed_datas = nullptr;
 
-	if (buffer) free(buffer);
-	buffer = nullptr;
-	buffer_idx = 0;
+	if (sp->buffer) free(sp->buffer);
+
+	memset(sp, 0, sizeof(sp[0]));
 
 	return 0;
 }
@@ -211,23 +116,22 @@ int ScanPixel::ClearSample(void)
 * 	GetLGP()
 * 		LOGO_PIXELを返す
 *===================================================================*/
-int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const short *lst_bgy, const short *lst_bgcb, const short *lst_bgcr)
-{
-	const int n = compressed_data_idx * SCAN_BUFFER_SIZE + buffer_idx;
+int GetLGP(LOGO_PIXEL& lgp, const SCAN_PIXEL *sp, const short *lst_bgy, const short *lst_bgcb, const short *lst_bgcr) {
+	const int n = sp->compressed_data_idx * SCAN_BUFFER_SIZE + sp->buffer_idx;
 	if (n<=1) throw NO_SAMPLE;
 
 	short* lst_y  = (short*)malloc(n * sizeof(short));
 	short* lst_cb = (short*)malloc(n * sizeof(short));
 	short* lst_cr = (short*)malloc(n * sizeof(short));
 	
-	const unsigned long tmp_size = (SCAN_BUFFER_SIZE + 10) * sizeof(buffer[0]);
+	const unsigned long tmp_size = (SCAN_BUFFER_SIZE + 10) * sizeof(sp->buffer[0]);
 	unsigned char *ptr_tmp = (unsigned char *)malloc(tmp_size);
 	if (ptr_tmp == nullptr || lst_y == nullptr || lst_cb == nullptr || lst_cr == nullptr)
 		throw CANNOT_MALLOC;
 	
 	int i = 0;
-	for (int k = 0; k < compressed_data_idx; k++) {
-		char *ptr_compressed_data = compressed_datas[k];
+	for (int k = 0; k < sp->compressed_data_idx; k++) {
+		char *ptr_compressed_data = sp->compressed_datas[k];
 		unsigned long src_size = (*(unsigned short *)ptr_compressed_data);
 		char *ptr_src = ptr_compressed_data + 2;
 		unsigned long dst_size = tmp_size;
@@ -243,22 +147,20 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const short *lst_bgy, const short *lst_bg
 	}
 	free(ptr_tmp);
 	
-	for (int j = 0; j < buffer_idx; i++, j++) {
-		lst_y[i]  = buffer[j].y;
-		lst_cb[i] = buffer[j].cb;
-		lst_cr[i] = buffer[j].cr;
+	for (int j = 0; j < sp->buffer_idx; i++, j++) {
+		lst_y[i]  = sp->buffer[j].y;
+		lst_cb[i] = sp->buffer[j].cb;
+		lst_cr[i] = sp->buffer[j].cr;
 	}
 
-	double A;
-	double B;
-	double temp;
+	double A, B;
 
 	// 輝度
 	GetAB(A, B, n, lst_y, lst_bgy);
 	if (A==1) {	// 0での除算回避
 		lgp.y = lgp.dp_y = 0;
 	} else {
-		temp = B / (1-A) +0.5;
+		double temp = B / (1-A) +0.5;
 		if (Abs(temp) < 0x7FFF) {
 			// shortの範囲内
 			lgp.y = (short)temp;
@@ -278,7 +180,7 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const short *lst_bgy, const short *lst_bg
 	if (A==1) {
 		lgp.cb = lgp.dp_cb = 0;
 	} else {
-		temp = B / (1-A) +0.5;
+		double temp = B / (1-A) +0.5;
 		if (Abs(temp) < 0x7FFF) {
 			// short範囲内
 			lgp.cb = (short)temp;
@@ -298,7 +200,7 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const short *lst_bgy, const short *lst_bg
 	if (A==1) {
 		lgp.cr = lgp.dp_cr = 0;
 	} else {
-		temp = B / (1-A) +0.5;
+		double temp = B / (1-A) +0.5;
 		if (Abs(temp) < 0x7FFF) {
 			// short範囲内
 			lgp.cr = (short)temp;
@@ -323,8 +225,7 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const short *lst_bgy, const short *lst_bg
 * 	GetAB_?()
 * 		回帰直線の傾きと切片を返す
 *===================================================================*/
-int ScanPixel::GetAB(double& A, double& B, int data_count, const short *lst_pixel, const short *lst_bg)
-{
+int GetAB(double& A, double& B, int data_count, const short *lst_pixel, const short *lst_bg) {
 	double A1, A2;
 	double B1, B2;
 	bool r;

@@ -15,27 +15,18 @@
 
 #define SCAN_BUFFER_SIZE 256
 
-class ScanPixel {
-protected:
+typedef struct {
 	char** compressed_datas;
 	int    compressed_data_n;
 	int    compressed_data_idx;
 
 	PIXEL_YC *buffer;
 	int buffer_idx;
-public:
-	ScanPixel(void);
-	~ScanPixel();
-
-	int  AddSample(PIXEL_YC& ycp);
-	//int  AddSample(PIXEL& rgb,PIXEL& rgb_bg);
-	//int  EditSample(unsigned int num,PIXEL_YC& ycp,PIXEL_YC& ycp_bg);
-	//int  EditSample(unsigned int num,PIXEL& rgb,PIXEL rgb_bg);
-	//int  DeleteSample(unsigned int num);
-	int  ClearSample(void);
-	int  GetLGP(LOGO_PIXEL& lgp, const short *lst_bgy, const short *lst_bgcb, const short *lst_bgcr);
-	int GetAB(double& A, double& B, int data_count, const short *lst_pixel, const short *lst_bg);
-};
+} SCAN_PIXEL;
 
 
+int AddSample(SCAN_PIXEL *sp, const PIXEL_YC& ycp);
+int ClearSample(SCAN_PIXEL *sp);
+int GetLGP(LOGO_PIXEL& lgp, const SCAN_PIXEL *sp, const short *lst_bgy, const short *lst_bgcb, const short *lst_bgcr);
+int GetAB(double& A, double& B, int data_count, const short *lst_pixel, const short *lst_bg);
 #endif

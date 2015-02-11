@@ -121,7 +121,7 @@ BOOL CALLBACK AbortDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 						for (int i = 0; i < xywh.h; i++) {
 							for (int j = 0; j < xywh.w; j++) {
 								PIXEL_YC ptr = pix[(xywh.y + i) * p->max_w + xywh.x + j];
-								p->sp[i * xywh.w + j].AddSample(ptr); // X軸:背景
+								AddSample(&p->sp[i * xywh.w + j], ptr);
 							}
 						}
 					}
@@ -186,8 +186,8 @@ void CreateLogoData(AbortDlgParam* p, HWND hdlg)
 
 	for (int i = 0; i < lgh.w * lgh.h; i++) {
 		SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETPOS, i, 0);
-		p->sp[i].GetLGP(lgp[i], lst_bgy, lst_bgcb, lst_bgcr);
-		p->sp[i].ClearSample();
+		GetLGP(lgp[i], &p->sp[i], lst_bgy, lst_bgcb, lst_bgcr);
+		ClearSample(&p->sp[i]);
 	}
 
 	free(lst_bgy);
