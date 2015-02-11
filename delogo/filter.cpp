@@ -133,6 +133,10 @@
 *    ロゴ名の文字列を255文字までに拡張。
 *    あわせて編集ダイアログのサイズを変更できるように。
 *
+*  2015/02/11 (+r05)
+*    新しい形式のロゴファイルの拡張子を変更。
+*    また書き出し時に古い形式での書き出しができるように。
+*
 **************************************************************************************************/
 
 #include <windows.h>
@@ -215,7 +219,7 @@ BOOL func_proc_add_logo(FILTER *fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int);
 //	FILTER_DLL構造体
 //----------------------------
 char filter_name[] = LOGO_FILTER_NAME;
-static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r04 by rigaya";
+static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r05 by rigaya";
 #define track_N 10
 #if track_N
 static TCHAR *track_name[track_N] = { 	"位置 X", "位置 Y", 
