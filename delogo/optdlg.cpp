@@ -548,7 +548,7 @@ static void ExportLogoData(char *fname, void *data, HWND hdlg)
 	SetFilePointer(hFile, 0, 0, FILE_BEGIN); // 先頭へ
 
 	// ヘッダ書き込み
-	int logo_header_version = (0 == _stricmp(PathFindExtension(fname), LGD_DEFAULT)) ? 2 : 1;
+	int logo_header_version = (0 == _stricmp(PathFindExtension(fname), ".lgd2")) ? 2 : 1;
 
 	LOGO_FILE_HEADER logo_file_header = { 0 };
 	strcpy_s(logo_file_header.str, (logo_header_version == 2) ? LOGO_FILE_HEADER_STR : LOGO_FILE_HEADER_STR_OLD);
