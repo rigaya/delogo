@@ -20,9 +20,6 @@ protected:
 	short*     lst_y;
 	short*     lst_cb;
 	short*     lst_cr;
-	short*     lst_bgy; 	// 輝度
-	short*     lst_bgcb;	// 色差（青）
-	short*     lst_bgcr;	// 色差（赤）
 	int n; // サンプル枚数
 
 	char** compressed_datas;
@@ -42,10 +39,8 @@ public:
 	//int  EditSample(unsigned int num,PIXEL& rgb,PIXEL rgb_bg);
 	//int  DeleteSample(unsigned int num);
 	int  ClearSample(void);
-	int  GetLGP(LOGO_PIXEL& plgp, const std::vector<PIXEL_YC>& bg);
-	int  GetAB_Y(double& A,double& B);
-	int  GetAB_Cb(double& A,double& B);
-	int  GetAB_Cr(double& A,double& B);
+	int  GetLGP(LOGO_PIXEL& lgp, const short *lst_bgy, const short *lst_bgcb, const short *lst_bgcr);
+	int GetAB(double& A, double& B, int data_count, const short *lst_pixel, const short *lst_bg);
 };
 
 

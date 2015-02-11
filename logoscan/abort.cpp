@@ -169,11 +169,30 @@ void CreateLogoData(AbortDlgParam* p, HWND hdlg)
 
 	SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETRANGE, 0, MAKELPARAM(0, lgh.w * lgh.h - 1));
 	
+	const int bg_length = p->bg.size();
+	short* lst_bgy  = (short *)malloc(sizeof(short) * bg_length);
+	short* lst_bgcb = (short *)malloc(sizeof(short) * bg_length);
+	short* lst_bgcr = (short *)malloc(sizeof(short) * bg_length);
+
+	if (lst_bgy == nullptr || lst_bgcb == nullptr || lst_bgcr == nullptr) {
+		return;
+	}
+	
+	for (int i = 0; i < bg_length; i++) {
+		lst_bgy[i]  = p->bg[i].y;
+		lst_bgcb[i] = p->bg[i].cb;
+		lst_bgcr[i] = p->bg[i].cr;
+	}
+
 	for (int i = 0; i < lgh.w * lgh.h; i++) {
 		SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETPOS, i, 0);
-		p->sp[i].GetLGP(lgp[i], p->bg);
+		p->sp[i].GetLGP(lgp[i], lst_bgy, lst_bgcb, lst_bgcr);
 		p->sp[i].ClearSample();
 	}
+
+	free(lst_bgy);
+	free(lst_bgcb);
+	free(lst_bgcr);
 }
 
 

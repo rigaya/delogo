@@ -62,9 +62,6 @@ ScanPixel::ScanPixel(void)
 	lst_y    = nullptr;
 	lst_cb   = nullptr;
 	lst_cr   = nullptr;
-	lst_bgy  = nullptr;
-	lst_bgcb = nullptr;
-	lst_bgcr = nullptr;
 
 	compressed_datas = nullptr;
 	compressed_data_idx = 0;
@@ -93,13 +90,9 @@ int ScanPixel::Alloc(unsigned int f)
 	lst_y    = (short*)malloc(f * sizeof(short)); //new short[f];
 	lst_cb   = (short*)malloc(f * sizeof(short)); //new short[f];
 	lst_cr   = (short*)malloc(f * sizeof(short)); //new short[f];
-	lst_bgy  = (short*)malloc(f * sizeof(short)); //new short[f];
-	lst_bgcb = (short*)malloc(f * sizeof(short)); //new short[f];
-	lst_bgcr = (short*)malloc(f * sizeof(short)); //new short[f];
 
 	// メモリ確保失敗
-	if (lst_y==NULL || lst_cb==NULL || lst_cr==NULL ||
-		lst_bgy==NULL || lst_bgcb==NULL || lst_bgcr==NULL)
+	if (lst_y==NULL || lst_cb==NULL || lst_cr==NULL)
 			throw CANNOT_MALLOC;
 
 	return f;
@@ -221,9 +214,6 @@ int ScanPixel::ClearSample(void)
 	if (lst_y)    free(lst_y);    //delete[] lst_y;
 	if (lst_cb)   free(lst_cb);   //delete[] lst_cb;
 	if (lst_cr)   free(lst_cr);   //delete[] lst_cr;
-	if (lst_bgy)  free(lst_bgy);  //delete[] lst_bgy;
-	if (lst_bgcb) free(lst_bgcb); //delete[] lst_bgcb;
-	if (lst_bgcr) free(lst_bgcr); //delete[] lst_bgcr;
 
 	if (compressed_datas) {
 		for (int i = 0; i < compressed_data_idx; i++) {
@@ -244,9 +234,6 @@ int ScanPixel::ClearSample(void)
 	lst_y    = nullptr;
 	lst_cb   = nullptr;
 	lst_cr   = nullptr;
-	lst_bgy  = nullptr;
-	lst_bgcb = nullptr;
-	lst_bgcr = nullptr;
 	n = 0;
 
 	return 0;
@@ -256,7 +243,7 @@ int ScanPixel::ClearSample(void)
 * 	GetLGP()
 * 		LOGO_PIXELを返す
 *===================================================================*/
-int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const std::vector<PIXEL_YC>& bg)
+int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const short *lst_bgy, const short *lst_bgcb, const short *lst_bgcr)
 {
 	if (n<=1) throw NO_SAMPLE;
 
@@ -277,7 +264,7 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const std::vector<PIXEL_YC>& bg)
 
 		PIXEL_YC *logo_pixel = (PIXEL_YC *)ptr_tmp;
 
-		for (unsigned int j = 0; j < SCAN_BUFFER_SIZE; i++, j++) {
+		for (int j = 0; j < SCAN_BUFFER_SIZE; i++, j++) {
 			lst_y[i]  = logo_pixel[j].y;
 			lst_cb[i] = logo_pixel[j].cb;
 			lst_cr[i] = logo_pixel[j].cr;
@@ -291,18 +278,12 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const std::vector<PIXEL_YC>& bg)
 		lst_cr[i] = buffer[j].cr;
 	}
 
-	for (int j = 0; j < n; j++) {
-		lst_bgy[j]  = bg[j].y;
-		lst_bgcb[j] = bg[j].cb;
-		lst_bgcr[j] = bg[j].cr;
-	}
-
 	double A;
 	double B;
 	double temp;
 
 	// 輝度
-	GetAB_Y(A, B);
+	GetAB(A, B, n, lst_y, lst_bgy);
 	if (A==1) {	// 0での除算回避
 		lgp.y = lgp.dp_y = 0;
 	} else {
@@ -322,7 +303,7 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const std::vector<PIXEL_YC>& bg)
 	}
 
 	// 色差(青)
-	GetAB_Cb(A, B);
+	GetAB(A, B, n, lst_cb, lst_bgcb);
 	if (A==1) {
 		lgp.cb = lgp.dp_cb = 0;
 	} else {
@@ -342,7 +323,7 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const std::vector<PIXEL_YC>& bg)
 	}
 
 	// 色差(赤)
-	GetAB_Cr(A, B);
+	GetAB(A, B, n, lst_cr, lst_bgcr);
 	if (A==1) {
 		lgp.cr = lgp.dp_cr = 0;
 	} else {
@@ -367,7 +348,7 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const std::vector<PIXEL_YC>& bg)
 * 	GetAB_?()
 * 		回帰直線の傾きと切片を返す
 *===================================================================*/
-int ScanPixel::GetAB_Y(double& A, double& B)
+int ScanPixel::GetAB(double& A, double& B, int data_count, const short *lst_pixel, const short *lst_bg)
 {
 	double A1, A2;
 	double B1, B2;
@@ -375,48 +356,14 @@ int ScanPixel::GetAB_Y(double& A, double& B)
 
 	// XY入れ替えたもの両方で平均を取る
 	// 背景がX軸
-	r = approxim_line(lst_bgy, lst_y, n, A1, B1);
+	r = approxim_line(lst_bg, lst_pixel, data_count, A1, B1);
 	if (r == false) throw CANNOT_GET_APPROXIMLINE;
 	// 背景がY軸
-	r = approxim_line(lst_y, lst_bgy, n, A2, B2);
+	r = approxim_line(lst_pixel, lst_bg, data_count, A2, B2);
 	if (r == false) throw CANNOT_GET_APPROXIMLINE;
 
 	A = (A1+(1/A2))/2;   // 傾きを平均
 	B = (B1+(-B2/A2))/2; // 切片も平均
 
-	return n;
-}
-int ScanPixel::GetAB_Cb(double& A, double& B)
-{
-	double A1, A2;
-	double B1, B2;
-	bool r;
-
-	r = approxim_line(lst_bgcb, lst_cb, n, A1, B1);
-	if (r == false) throw CANNOT_GET_APPROXIMLINE;
-
-	r = approxim_line(lst_cb, lst_bgcb, n, A2, B2);
-	if (r == false) throw CANNOT_GET_APPROXIMLINE;
-
-	A = (A1+(1/A2))/2;   // 傾きを平均
-	B = (B1+(-B2/A2))/2; // 切片も平均
-
-	return n;
-}
-int ScanPixel::GetAB_Cr(double& A, double& B)
-{
-	double A1, A2;
-	double B1, B2;
-	bool r;
-
-	r = approxim_line(lst_bgcr, lst_cr, n, A1, B1);
-	if (r == false) throw CANNOT_GET_APPROXIMLINE;
-
-	r = approxim_line(lst_cr, lst_bgcr, n, A2, B2);
-	if (r == false) throw CANNOT_GET_APPROXIMLINE;
-
-	A = (A1+(1/A2))/2;   // 傾きを平均
-	B = (B1+(-B2/A2))/2; // 切片も平均
-
-	return n;
+	return data_count;
 }
