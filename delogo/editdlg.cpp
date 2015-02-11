@@ -155,12 +155,12 @@ BOOL on_IDOK(HWND hdlg)
 
 	// ロゴデータ設定
 	lstrcpy(newdata->name, newname);
-	newdata->st = (short)min(GetDlgItemInt(hdlg, ID_EDIT_START, NULL, FALSE), track_e[6]);
-	newdata->ed = (short)min(GetDlgItemInt(hdlg, ID_EDIT_END,   NULL, FALSE), track_e[9]);
-	newdata->fi = (short)min(GetDlgItemInt(hdlg, ID_EDIT_FIN,   NULL, FALSE), track_e[7]);
-	newdata->fo = (short)min(GetDlgItemInt(hdlg, ID_EDIT_FOUT,  NULL, FALSE), track_e[8]);
-	newdata->x  =     (short)GetDlgItemInt(hdlg, ID_EDIT_X,     NULL, FALSE);
-	newdata->y  =     (short)GetDlgItemInt(hdlg, ID_EDIT_Y,     NULL, FALSE);
+	newdata->st = (short)min((int)GetDlgItemInt(hdlg, ID_EDIT_START, NULL, FALSE), track_e[6]);
+	newdata->ed = (short)min((int)GetDlgItemInt(hdlg, ID_EDIT_END,   NULL, FALSE), track_e[9]);
+	newdata->fi = (short)min((int)GetDlgItemInt(hdlg, ID_EDIT_FIN,   NULL, FALSE), track_e[7]);
+	newdata->fo = (short)min((int)GetDlgItemInt(hdlg, ID_EDIT_FOUT,  NULL, FALSE), track_e[8]);
+	newdata->x  =          (short)GetDlgItemInt(hdlg, ID_EDIT_X,     NULL, FALSE);
+	newdata->y  =          (short)GetDlgItemInt(hdlg, ID_EDIT_Y,     NULL, FALSE);
 
 	// リストボックスを更新
 	DeleteItem(owner, list_n);

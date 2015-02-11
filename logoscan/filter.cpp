@@ -339,6 +339,8 @@ inline void create_dlgitem(HWND hwnd, HINSTANCE hinst)
 /*--------------------------------------------------------------------
 *	設定ウィンドウの各値を固定する
 *-------------------------------------------------------------------*/
+#pragma warning (push)
+#pragma warning (disable:4100)
 inline void FixXYWH(FILTER* fp, void* editp)
 {
 	fp->track[tLOGOX] = _x;
@@ -349,6 +351,7 @@ inline void FixXYWH(FILTER* fp, void* editp)
 
 	fp->exfunc->filter_window_update(fp);	// 更新
 }
+#pragma warning (pop)
 
 /*--------------------------------------------------------------------
 *	設定ウィンドウの各値を設定する
