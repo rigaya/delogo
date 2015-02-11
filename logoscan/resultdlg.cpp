@@ -96,8 +96,7 @@ BOOL CALLBACK ResultDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 			}
 			break;
 		case WM_SIZING:
-			RECT rect = *(RECT *)lParam;
-			on_wm_sizing(hdlg, &rect);
+			on_wm_sizing(hdlg, (RECT *)lParam);
 			return TRUE;
 	}
 
@@ -125,6 +124,8 @@ static void Wm_initdialog(HWND hdlg)
 	// メモリ確保
 	pix = NULL;//(PIXEL*)VirtualAlloc(NULL, bmi.bmiHeader.biWidth*bmi.bmiHeader.biHeight*sizeof(PIXEL), MEM_RESERVE, PAGE_READWRITE);
 
+	get_initial_dialog_size(hdlg, defaultWindow, border, defaultControls, TargetIDs);
+
 	// ロゴ消しフィルタを探す
 	delogofp = NULL;
 	for (int n = 0; (delogofp = (FILTER*)dlgfp->exfunc->get_filterp(n)) != NULL; n++) {
@@ -137,8 +138,6 @@ static void Wm_initdialog(HWND hdlg)
 	// みつからなかった時
 	delogofp = NULL;
 	EnableWindow(GetDlgItem(hdlg, IDC_SEND), FALSE); // 送信禁止
-
-	get_initial_dialog_size(hdlg, defaultWindow, border, defaultControls, TargetIDs);
 }
 
 /*--------------------------------------------------------------------
