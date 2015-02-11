@@ -1,6 +1,6 @@
 ﻿/*********************************************************************
-* 	class ScanPixel
-* 	各ピクセルのロゴ色・不透明度解析用クラス
+* 	構造体 SCAN_PIXEL
+* 	各ピクセルのロゴ色・不透明度解析用
 * 
 * 2003
 * 	05/10:	operator new[](size_t, T* p) を使いすぎると落ちる。
@@ -15,13 +15,13 @@
 #include "logo.h"
 #include "approxim.h"
 #include "scanpix.h"
+#include "logoscan.h"
 #include "../zlib/zlib.h"
 
 
 // エラーメッセージ
-const char* CANNOT_MALLOC = "メモリを確保できませんでした";
-const char* CANNOT_GET_APPROXIMLINE = "サンプルが足りません\n背景色の異なるサンプルを加えてください";
-const char* NO_SAMPLE = "サンプルが足りません\nロゴの背景が単一色のサンプルを加えてください";
+static const char* CANNOT_GET_APPROXIMLINE = "サンプルが足りません\n背景色の異なるサンプルを加えてください";
+static const char* NO_SAMPLE = "サンプルが足りません\nロゴの背景が単一色のサンプルを加えてください";
 
 #define DP_RANGE 0x3FFF
 
@@ -62,17 +62,28 @@ inline T Abs(T x) {
 int AddSample(SCAN_PIXEL *sp, const PIXEL_YC& ycp) {
 	if (sp->buffer == nullptr) {
 		sp->buffer = (PIXEL_YC *)malloc(sizeof(PIXEL_YC) * SCAN_BUFFER_SIZE);
+		if (sp->buffer == nullptr) {
+			ShowErrorMessage(ERROR_MALLOC);
+			return 1;
+		}
 		sp->buffer_idx = 0;
 	}
 	if (sp->buffer_idx >= SCAN_BUFFER_SIZE) {
 		unsigned long dst_bytes = (sp->buffer_idx + 10) * sizeof(sp->buffer[0]);
 		unsigned char *ptr_tmp = (unsigned char *)malloc(dst_bytes);
+		if (ptr_tmp == nullptr) {
+			ShowErrorMessage(ERROR_MALLOC);
+			return 1;
+		}
+
 		unsigned long src_bytes = sp->buffer_idx * sizeof(sp->buffer[0]);
 		compress2(ptr_tmp, &dst_bytes, (BYTE *)&sp->buffer[0], src_bytes, 9);
 
 		char *ptr_compressed = (char *)malloc(sizeof(unsigned short) + dst_bytes);
-		if (ptr_compressed == nullptr)
-			throw CANNOT_MALLOC;
+		if (ptr_tmp == nullptr || ptr_compressed == nullptr) {
+			ShowErrorMessage(ERROR_MALLOC);
+			return 1;
+		}
 
 		*(unsigned short *)ptr_compressed = (unsigned short)dst_bytes;
 		memcpy(ptr_compressed + 2, ptr_tmp, dst_bytes);
@@ -113,12 +124,40 @@ int ClearSample(SCAN_PIXEL *sp) {
 }
 
 /*====================================================================
+* 	GetPixelAndBG()
+* 		LOGO_PIXELを返す
+*===================================================================*/
+void GetPixelAndBG(short *pixel, short *bg, double A, double B) {
+	if (A==1) {	// 0での除算回避
+		*pixel = *bg = 0;
+	} else {
+		double temp = B / (1-A) +0.5;
+		if (Abs(temp) < 0x7FFF) {
+			// shortの範囲内
+			*pixel = (short)temp;
+			temp = ((double)1-A) * LOGO_MAX_DP +0.5;
+			if (Abs(temp)>DP_RANGE || short(temp)==0) {
+				*pixel = *bg = 0;
+			} else {
+				*bg = (short)temp;
+			}
+		} else {
+			*pixel = *bg = 0;
+		}
+	}
+}
+
+/*====================================================================
 * 	GetLGP()
 * 		LOGO_PIXELを返す
 *===================================================================*/
 int GetLGP(LOGO_PIXEL& lgp, const SCAN_PIXEL *sp, const short *lst_bgy, const short *lst_bgcb, const short *lst_bgcr) {
+	int ret = 1;
 	const int n = sp->compressed_data_idx * SCAN_BUFFER_SIZE + sp->buffer_idx;
-	if (n<=1) throw NO_SAMPLE;
+	if (n <= 1)  {
+		ShowErrorMessage(NO_SAMPLE);
+		return ret;
+	}
 
 	short* lst_y  = (short*)malloc(n * sizeof(short));
 	short* lst_cb = (short*)malloc(n * sizeof(short));
@@ -126,8 +165,10 @@ int GetLGP(LOGO_PIXEL& lgp, const SCAN_PIXEL *sp, const short *lst_bgy, const sh
 	
 	const unsigned long tmp_size = (SCAN_BUFFER_SIZE + 10) * sizeof(sp->buffer[0]);
 	unsigned char *ptr_tmp = (unsigned char *)malloc(tmp_size);
-	if (ptr_tmp == nullptr || lst_y == nullptr || lst_cb == nullptr || lst_cr == nullptr)
-		throw CANNOT_MALLOC;
+	if (ptr_tmp == nullptr || lst_y == nullptr || lst_cb == nullptr || lst_cr == nullptr) {
+		ShowErrorMessage(ERROR_MALLOC);
+		return ret;
+	}
 	
 	int i = 0;
 	for (int k = 0; k < sp->compressed_data_idx; k++) {
@@ -153,72 +194,19 @@ int GetLGP(LOGO_PIXEL& lgp, const SCAN_PIXEL *sp, const short *lst_bgy, const sh
 		lst_cr[i] = sp->buffer[j].cr;
 	}
 
-	double A, B;
-
-	// 輝度
-	GetAB(A, B, n, lst_y, lst_bgy);
-	if (A==1) {	// 0での除算回避
-		lgp.y = lgp.dp_y = 0;
-	} else {
-		double temp = B / (1-A) +0.5;
-		if (Abs(temp) < 0x7FFF) {
-			// shortの範囲内
-			lgp.y = (short)temp;
-			temp = ((double)1-A) * LOGO_MAX_DP +0.5;
-			if (Abs(temp)>DP_RANGE || short(temp)==0) {
-				lgp.y = lgp.dp_y = 0;
-			} else {
-				lgp.dp_y = (short)temp;
-			}
-		} else {
-			lgp.y = lgp.dp_y = 0;
-		}
+	double A_Y, B_Y, A_Cb, B_Cb, A_Cr, B_Cr;
+	if (   0 == GetAB(A_Y,  B_Y,  n, lst_y,  lst_bgy)
+		&& 0 == GetAB(A_Cb, B_Cb, n, lst_cb, lst_bgcb)
+		&& 0 == GetAB(A_Cr, B_Cr, n, lst_cr, lst_bgcr)) {
+		GetPixelAndBG(&lgp.y,  &lgp.dp_y,  A_Y,  B_Y);
+		GetPixelAndBG(&lgp.cb, &lgp.dp_cb, A_Cb, B_Cb);
+		GetPixelAndBG(&lgp.cr, &lgp.dp_cr, A_Cr, B_Cr);
+		ret = 0;
 	}
-
-	// 色差(青)
-	GetAB(A, B, n, lst_cb, lst_bgcb);
-	if (A==1) {
-		lgp.cb = lgp.dp_cb = 0;
-	} else {
-		double temp = B / (1-A) +0.5;
-		if (Abs(temp) < 0x7FFF) {
-			// short範囲内
-			lgp.cb = (short)temp;
-			temp = ((double)1-A) * LOGO_MAX_DP +0.5;
-			if (Abs(temp) > DP_RANGE || short(temp)==0) {
-				lgp.cb = lgp.dp_cb = 0;
-			} else {
-				lgp.dp_cb = (short)temp;
-			}
-		} else {
-			lgp.cb = lgp.dp_cb = 0;
-		}
-	}
-
-	// 色差(赤)
-	GetAB(A, B, n, lst_cr, lst_bgcr);
-	if (A==1) {
-		lgp.cr = lgp.dp_cr = 0;
-	} else {
-		double temp = B / (1-A) +0.5;
-		if (Abs(temp) < 0x7FFF) {
-			// short範囲内
-			lgp.cr = (short)temp;
-			temp = ((double)1-A) * LOGO_MAX_DP + 0.5;
-			if (Abs(temp) > DP_RANGE || short(temp)==0) {
-				lgp.cr = lgp.dp_cr = 0;
-			} else {
-				lgp.dp_cr = (short)temp;
-			}
-		} else {
-			lgp.cr = lgp.dp_cr = 0;
-		}
-	}
-
 	free(lst_y);
 	free(lst_cb);
 	free(lst_cr);
-	return n;
+	return ret;
 }
 
 /*====================================================================
@@ -228,18 +216,16 @@ int GetLGP(LOGO_PIXEL& lgp, const SCAN_PIXEL *sp, const short *lst_bgy, const sh
 int GetAB(double& A, double& B, int data_count, const short *lst_pixel, const short *lst_bg) {
 	double A1, A2;
 	double B1, B2;
-	bool r;
-
 	// XY入れ替えたもの両方で平均を取る
 	// 背景がX軸
-	r = approxim_line(lst_bg, lst_pixel, data_count, A1, B1);
-	if (r == false) throw CANNOT_GET_APPROXIMLINE;
-	// 背景がY軸
-	r = approxim_line(lst_pixel, lst_bg, data_count, A2, B2);
-	if (r == false) throw CANNOT_GET_APPROXIMLINE;
+	if (   false == approxim_line(lst_bg, lst_pixel, data_count, A1, B1)
+		|| false == approxim_line(lst_pixel, lst_bg, data_count, A2, B2)) {
+		ShowErrorMessage(CANNOT_GET_APPROXIMLINE);
+		return 1;
+	}
 
 	A = (A1+(1/A2))/2;   // 傾きを平均
 	B = (B1+(-B2/A2))/2; // 切片も平均
 
-	return data_count;
+	return 0;
 }

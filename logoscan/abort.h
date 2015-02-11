@@ -26,7 +26,6 @@ struct AbortDlgParam {
 	int                   max_w;
 	int                   x, y, w, h, t;
 	void**                data;
-	const char*           errstr;
 	int                   mark;
 	FILE*                 list;
 };

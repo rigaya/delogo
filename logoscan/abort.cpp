@@ -11,7 +11,7 @@
 #include "abort.h"
 #include "resource.h"
 #include "filter.h"
-
+#include "logoscan.h"
 
 #define tLOGOX   0
 #define tLOGOY   1
@@ -38,7 +38,7 @@ public:
 bool  Cal_BGcolor(PIXEL_YC&, PIXEL_YC*, XYWH&, int, int);
 int   comp_short(const void* x, const void* y);
 short med_average(short* s, int n);
-void  CreateLogoData(AbortDlgParam* p, HWND hdlg);//FILTER* fp,ScanPixel*& sp,void*&);
+int CreateLogoData(AbortDlgParam* p, HWND hdlg);//FILTER* fp,ScanPixel*& sp,void*&);
 
 
 
@@ -80,63 +80,64 @@ BOOL CALLBACK AbortDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 			KillTimer(hdlg, IDD_TIMER);
 
 			//----------------------------------------------- ロゴ解析
-			try {
-				SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETRANGE, 0, MAKELPARAM(0, p->e-p->s + 1));
+			SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETRANGE, 0, MAKELPARAM(0, p->e - p->s + 1));
+			
+			while (examine <= p->e - p->s && !abort) {
+				// pump windows message
+				MSG message;
+				while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) {
+					TranslateMessage(&message);
+					DispatchMessage(&message);
+				}
 
-				while (examine <= p->e-p->s && !abort) {
-					// pump windows message
-					MSG message;
-					while (PeekMessage(&message, NULL, 0, 0, PM_REMOVE)) {
-						TranslateMessage(&message);
-						DispatchMessage(&message);
+				SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETPOS, examine, 0);
+				SetDlgItemInt(hdlg, IDC_USEABLE, useable, FALSE);
+				SetDlgItemInt(hdlg, IDC_EXAMF, examine, FALSE);
+
+				// 画像取得
+				PIXEL_YC* pix = p->fp->exfunc->get_ycp_filtering_cache_ex(p->fp, p->editp, p->s + examine, NULL, NULL);
+
+				// 背景平均値計算
+				PIXEL_YC bg;
+				XYWH xywh(p->x, p->y, p->w, p->h);
+				if (Cal_BGcolor(bg, pix, xywh, p->max_w, p->t)) {
+					// 単一背景のときサンプルをセットする
+					useable++;
+					SendMessage(p->fp->hwnd, WM_SP_DRAWFRAME, 0, p->s+examine);
+
+					if (p->mark) {	// 有効フレームをマーク
+						FRAME_STATUS fs;
+						p->fp->exfunc->get_frame_status(p->editp, p->s+examine, &fs);
+						fs.edit_flag |= EDIT_FRAME_EDIT_FLAG_MARKFRAME;
+						p->fp->exfunc->set_frame_status(p->editp, p->s+examine, &fs);
+					}
+					if (p->list) {
+						fprintf(p->list, "%d\n", p->s + examine + 1);
 					}
 
-					SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETPOS, examine, 0);
-					SetDlgItemInt(hdlg, IDC_USEABLE, useable, FALSE);
-					SetDlgItemInt(hdlg, IDC_EXAMF, examine, FALSE);
-
-					// 画像取得
-					PIXEL_YC* pix = p->fp->exfunc->get_ycp_filtering_cache_ex(p->fp, p->editp, p->s + examine, NULL, NULL);
-
-					// 背景平均値計算
-					PIXEL_YC bg;
-					XYWH xywh(p->x, p->y, p->w, p->h);
-					if (Cal_BGcolor(bg, pix, xywh, p->max_w, p->t)) {
-						// 単一背景のときサンプルをセットする
-						useable++;
-						SendMessage(p->fp->hwnd, WM_SP_DRAWFRAME, 0, p->s+examine);
-
-						if (p->mark) {	// 有効フレームをマーク
-							FRAME_STATUS fs;
-							p->fp->exfunc->get_frame_status(p->editp, p->s+examine, &fs);
-							fs.edit_flag |= EDIT_FRAME_EDIT_FLAG_MARKFRAME;
-							p->fp->exfunc->set_frame_status(p->editp, p->s+examine, &fs);
-						}
-						if (p->list) {
-							fprintf(p->list, "%d\n", p->s + examine + 1);
-						}
-
-						p->bg.push_back(bg);
-						// ロゴサンプルセット
-						for (int i = 0; i < xywh.h; i++) {
-							for (int j = 0; j < xywh.w; j++) {
+					p->bg.push_back(bg);
+					// ロゴサンプルセット
+					bool error = false;
+					for (int i = 0; i < xywh.h; i++) {
+						for (int j = 0; j < xywh.w; j++) {
+							if (!error) {
 								PIXEL_YC ptr = pix[(xywh.y + i) * p->max_w + xywh.x + j];
-								AddSample(&p->sp[i * xywh.w + j], ptr);
+								error |= (0 != AddSample(&p->sp[i * xywh.w + j], ptr));
 							}
 						}
 					}
-					examine++;
 
-				}	// end of while
+					abort |= error;
+				}
+				examine++;
 
-				// ロゴデータ作成
-				CreateLogoData(p,hdlg);
+			} // end of while
 
-				if (!abort)
-					MessageBeep((UINT)-1);
-			} catch (const char* str) {
-				p->errstr = str;
-			}
+			// ロゴデータ作成
+			CreateLogoData(p,hdlg);
+
+			if (!abort)
+				MessageBeep((UINT)-1);
 			EndDialog(hdlg, 0);
 
 			break;
@@ -148,8 +149,7 @@ BOOL CALLBACK AbortDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 /*--------------------------------------------------------------------
 *	ロゴデータを作成
 *-------------------------------------------------------------------*/
-void CreateLogoData(AbortDlgParam* p, HWND hdlg)
-{
+int CreateLogoData(AbortDlgParam* p, HWND hdlg) {
 	SetDlgItemText(hdlg, IDC_STATUS, "ロゴデータ構築中...");
 
 	// ロゴヘッダ作成（名称以外）
@@ -159,24 +159,23 @@ void CreateLogoData(AbortDlgParam* p, HWND hdlg)
 	lgh.y = (short)p->y;//fp->track[tLOGOY];
 	lgh.w = (short)p->w;//fp->track[tLOGOW];
 	lgh.h = (short)p->h;//fp->track[tLOGOH];
-
-	// ロゴデータ領域確保
-	*p->data = (void*) new char[logo_data_size(&lgh)];
-	if (p->data==NULL) throw "メモリ確保できませんでした";
-	*((LOGO_HEADER*)*p->data) = lgh; // ヘッダコピー
-
-	LOGO_PIXEL* lgp = (LOGO_PIXEL*) ((LOGO_HEADER*)*p->data+1);
-
-	SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETRANGE, 0, MAKELPARAM(0, lgh.w * lgh.h - 1));
 	
 	const int bg_length = p->bg.size();
 	short* lst_bgy  = (short *)malloc(sizeof(short) * bg_length);
 	short* lst_bgcb = (short *)malloc(sizeof(short) * bg_length);
 	short* lst_bgcr = (short *)malloc(sizeof(short) * bg_length);
 
-	if (lst_bgy == nullptr || lst_bgcb == nullptr || lst_bgcr == nullptr) {
-		return;
+	// ロゴデータ領域確保
+	*p->data = malloc(logo_data_size(&lgh));
+	if (p->data == nullptr || lst_bgy == nullptr || lst_bgcb == nullptr || lst_bgcr == nullptr) {
+		ShowErrorMessage(ERROR_MALLOC);
+		return 1;
 	}
+	*((LOGO_HEADER*)*p->data) = lgh; // ヘッダコピー
+
+	LOGO_PIXEL* lgp = (LOGO_PIXEL*) ((LOGO_HEADER*)*p->data+1);
+
+	SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETRANGE, 0, MAKELPARAM(0, lgh.w * lgh.h - 1));
 	
 	for (int i = 0; i < bg_length; i++) {
 		lst_bgy[i]  = p->bg[i].y;
@@ -184,15 +183,19 @@ void CreateLogoData(AbortDlgParam* p, HWND hdlg)
 		lst_bgcr[i] = p->bg[i].cr;
 	}
 
+	bool error = false;
 	for (int i = 0; i < lgh.w * lgh.h; i++) {
 		SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETPOS, i, 0);
-		GetLGP(lgp[i], &p->sp[i], lst_bgy, lst_bgcb, lst_bgcr);
+		if (!error) {
+			error |= 0 != GetLGP(lgp[i], &p->sp[i], lst_bgy, lst_bgcb, lst_bgcr);
+		}
 		ClearSample(&p->sp[i]);
 	}
 
 	free(lst_bgy);
 	free(lst_bgcb);
 	free(lst_bgcr);
+	return error != false;
 }
 
 

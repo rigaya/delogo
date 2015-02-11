@@ -103,6 +103,7 @@
   <ItemGroup>
     <ClInclude Include="abort.h" />
     <ClInclude Include="approxim.h" />
+    <ClInclude Include="logoscan.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="resultdlg.h" />
     <ClInclude Include="scanpix.h" />

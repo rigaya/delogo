@@ -72,15 +72,19 @@
               ロゴ名の文字列を255文字までに拡張。
               あわせて解析結果ダイアログのサイズを変更できるように。
 
+  2015/02/11: ver 0.07+2 (rigaya)
+              ロゴ解析時のメモリ使用量を大幅に削減。
+
 **********************************************************************/
 #include <windows.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include "filter.h"
 #include "logo.h"
 #include "scanpix.h"
 #include "resultdlg.h"
 #include "abort.h"
-
+#include "logoscan.h"
 
 // ボタン
 #define ID_SCANBTN  40010
@@ -104,7 +108,6 @@ inline void SetXYWH(FILTER* fp, void* editp);
 inline void SetRange(FILTER* fp, void* editp);
 inline void FixXYWH(FILTER* fp, void* editp);
 void ScanLogoData(FILTER* fp, void* editp);
-SCAN_PIXEL *SetScanPixel(FILTER* fp, int w, int h, int s, int e, void* editp, char* list);
 
 //----------------------------
 //	FILTER_DLL構造体
@@ -417,109 +420,26 @@ inline void SetRange(FILTER* fp, void* editp)
 }
 
 /*--------------------------------------------------------------------
-*	ロゴデータを解析する
-*-------------------------------------------------------------------*/
-void ScanLogoData(FILTER* fp, void* editp)
-{
-	EnableWindow(scanbtn, FALSE); // 解析ボタン無効化
-
-	int w, h;       // 幅,高さ
-	int start, end; // 選択開始・終了フレーム
-	int frame;      // 現在の表示フレーム
-	char list[MAX_PATH] = "\0";	// フレームリストファイル名
-
-	SCAN_PIXEL* sp = NULL;
-
-	try {
-		if (fp->exfunc->is_filter_active(fp) == FALSE)	// フィルタが有効でない時
-			throw "フィルタを有効にしてください";
-
-		// 必要な情報を集める
-		frame = fp->exfunc->get_frame_n(editp);
-		if (!frame) throw "映像が読み込まれていません";
-
-		frame = fp->exfunc->get_frame(editp);
-
-		fp->exfunc->get_select_frame(editp, &start, &end);
-		if (end-start < 1) throw "画像の枚数が足りません";
-
-//		if ((fp->track[tLOGOW]+1)*(fp->track[tLOGOH]+1) > LOGO_MAXPIXEL)
-//			// h*wがロゴデータ上限より大きい時
-//			throw "ロゴ領域が広すぎます";
-
-		// 画像サイズ
-		if (!fp->exfunc->get_frame_size(editp, &w, &h))
-			throw "画像サイズ取得できませんでした";
-
-		// ロゴ名の初期値
-		GetWindowText(GetWindow(fp->hwnd, GW_OWNER), defname, LOGO_MAX_NAME-9); // タイトルバー文字列取得
-		for (int i = 1; i < LOGO_MAX_NAME-9; i++)
-			if (defname[i]=='.') defname[i] = '\0'; // 2文字目以降の'.'を終端にする（.aviを削除）
-		wsprintf(defname, "%s %dx%d", defname, w, h); // デフォルトロゴ名作成
-
-		// キャッシュサイズ設定
-		fp->exfunc->set_ycp_filtering_cache_size(fp, w, h, 1, NULL);
-
-		if (fp->check[cLIST]) { // リスト保存時ファイル名取得
-			// ロゴ名の初期値
-			GetWindowText(GetWindow(fp->hwnd, GW_OWNER), list, MAX_PATH-10);	// タイトルバー文字列取得
-			for (int i = 1; list[i] && i < MAX_PATH-10; i++)
-				if (list[i] == '.') list[i] = '\0'; // 2文字目以降の'.'を終端にする（拡張子を削除）
-			wsprintf(list, "%s_scan.txt",list); // デフォルトロゴ名作成
-
-			if (!fp->exfunc->dlg_get_save_name(list, LIST_FILTER, list))
-				list[0] = '\0'; // キャンセル時
-		}
-
-		// ScanPixelを設定する+解析・ロゴデータ作成
-		sp = SetScanPixel(fp, w, h, start, end, editp, list);
-	} catch (const char* str) {
-		MessageBox(fp->hwnd, str, filter_name, MB_OK|MB_ICONERROR);
-		if (sp) free(sp);
-		sp = nullptr;
-		if (logodata) delete[] logodata;
-		logodata = NULL;
-		EnableWindow(scanbtn,TRUE); // ボタンを有効に戻す
-
-		return;
-	}
-
-	if (sp) {
-		free(sp);
-		sp = nullptr;
-	}
-
-
-	// 表示フレームを戻す
-	fp->exfunc->set_frame(editp,frame);
-
-	// 解析結果ダイアログ
-	dlgfp = fp;
-	DialogBox(fp->dll_hinst, "RESULT_DLG", GetWindow(fp->hwnd, GW_OWNER), ResultDlgProc);
-
-	if (logodata) {
-		delete[] logodata;
-		logodata=NULL;
-	}
-
-	EnableWindow(scanbtn,TRUE);	// ボタンを有効に戻す
-}
-
-/*--------------------------------------------------------------------
 *	ScanPixelを設定する
 *-------------------------------------------------------------------*/
-SCAN_PIXEL *SetScanPixel(FILTER* fp, int w, int h, int s, int e, void* editp, char* list) {
+int SetScanPixel(FILTER* fp, int w, int h, int s, int e, void* editp, char* list) {
 	// 範囲チェック
-	if (fp->track[tLOGOW]<=0 || fp->track[tLOGOH]<=0)
-		throw "領域が指定されていません";
-	if ( (fp->track[tLOGOX] + fp->track[tLOGOW] > w-1) ||
-		(fp->track[tLOGOY] + fp->track[tLOGOH] > h-1) )
-			throw "領域の一部が画面外です";
+	if (fp->track[tLOGOW]<=0 || fp->track[tLOGOH]<=0) {
+		ShowErrorMessage("領域が指定されていません");
+		return 1;
+	}
+	if ((fp->track[tLOGOX] + fp->track[tLOGOW] > w-1) ||
+		(fp->track[tLOGOY] + fp->track[tLOGOH] > h-1)) {
+		ShowErrorMessage("領域の一部が画面外です");
+		return 1;
+	}
 
 	// メモリ確保
 	SCAN_PIXEL *sp = (SCAN_PIXEL *)calloc(fp->track[tLOGOW] * fp->track[tLOGOH], sizeof(sp[0]));
-	if (sp == nullptr)
-		throw "メモリが確保できませんでした";
+	if (sp == nullptr) {
+		ShowErrorMessage(ERROR_MALLOC);
+		return 1;
+	}
 
 	AbortDlgParam param;
 
@@ -535,28 +455,109 @@ SCAN_PIXEL *SetScanPixel(FILTER* fp, int w, int h, int s, int e, void* editp, ch
 	param.h      = fp->track[tLOGOH];
 	param.t      = fp->track[tTHY];
 	param.data   = &logodata;
-	param.errstr = NULL;
 	param.mark   = fp->check[cMARK];
 	param.list   = NULL;
 
 	if (*list) {
 		if (fopen_s(&param.list, list, "w") || param.list == NULL) {
-			throw "フレームリストファイルの作成に失敗しました";
+			ShowErrorMessage("フレームリストファイルの作成に失敗しました");
+			free(sp);
+			return 1;
 		}
 		fprintf(param.list, "<Frame List>\n");
 	}
 
 	DialogBoxParam(fp->dll_hinst, "ABORT_DLG", GetWindow(fp->hwnd, GW_OWNER), AbortDlgProc, (LPARAM)&param);
 
-	if (param.list) fclose(param.list);
-	param.list = NULL;
-
-	if (param.errstr)
-		throw param.errstr;
-
-	return sp;
+	if (param.list) {
+		fclose(param.list);
+		param.list = NULL;
+	}
+	if (sp) {
+		free(sp);
+	}
+	return 0;
 }
 
+/*--------------------------------------------------------------------
+*	ロゴデータを解析する
+*-------------------------------------------------------------------*/
+void ScanLogoData(FILTER* fp, void* editp)
+{
+	int ret = 0;
+	EnableWindow(scanbtn, FALSE); // 解析ボタン無効化
 
+	int w, h;       // 幅,高さ
+	int start, end; // 選択開始・終了フレーム
+	int frame = -1;      // 現在の表示フレーム
+	char list[MAX_PATH] = "\0";	// フレームリストファイル名
+	
+	// 必要な情報を集める
+	if (fp->exfunc->is_filter_active(fp) == FALSE) {
+		// フィルタが有効でない時
+		ret = 1; ShowErrorMessage("フィルタを有効にしてください");
+	} else if (0 == (frame = fp->exfunc->get_frame_n(editp))) {
+		ret = 1; ShowErrorMessage("映像が読み込まれていません");
+	} else if (0 > (frame = fp->exfunc->get_frame(editp))) {
+		ret = 1; ShowErrorMessage("映像が読み込まれていません");
+	} else if (!fp->exfunc->get_select_frame(editp, &start, &end) || end-start < 1) {
+		ret = 1; ShowErrorMessage("画像の枚数が足りません");
+	} else if (!fp->exfunc->get_frame_size(editp, &w, &h)) {
+		ret = 1; ShowErrorMessage("画像サイズ取得できませんでした");
+	} else {
+		// ロゴ名の初期値
+		GetWindowText(GetWindow(fp->hwnd, GW_OWNER), defname, LOGO_MAX_NAME-9); // タイトルバー文字列取得
+		for (int i = 1; i < LOGO_MAX_NAME-9; i++)
+			if (defname[i]=='.') defname[i] = '\0'; // 2文字目以降の'.'を終端にする（.aviを削除）
+		wsprintf(defname, "%s %dx%d", defname, w, h); // デフォルトロゴ名作成
+
+		// キャッシュサイズ設定
+		fp->exfunc->set_ycp_filtering_cache_size(fp, w, h, 1, NULL);
+
+		if (fp->check[cLIST]) { // リスト保存時ファイル名取得
+			// ロゴ名の初期値
+			GetWindowText(GetWindow(fp->hwnd, GW_OWNER), list, MAX_PATH-10);	// タイトルバー文字列取得
+			for (int i = 1; list[i] && i < MAX_PATH-10; i++)
+				if (list[i] == '.') list[i] = '\0'; // 2文字目以降の'.'を終端にする（拡張子を削除）
+			wsprintf(list, "%s_scan.txt", list); // デフォルトロゴ名作成
+
+			if (!fp->exfunc->dlg_get_save_name(list, LIST_FILTER, list))
+				list[0] = '\0'; // キャンセル時
+		}
+		
+		// ScanPixelを設定する+解析・ロゴデータ作成
+		ret = SetScanPixel(fp, w, h, start, end, editp, list);
+	}
+
+	// 表示フレームを戻す
+	if (frame >= 0)
+		fp->exfunc->set_frame(editp,frame);
+
+	// 解析結果ダイアログ
+	dlgfp = fp;
+	DialogBox(fp->dll_hinst, "RESULT_DLG", GetWindow(fp->hwnd, GW_OWNER), ResultDlgProc);
+
+	if (logodata) {
+		free(logodata);
+		logodata = nullptr;
+	}
+
+	EnableWindow(scanbtn,TRUE);	// ボタンを有効に戻す
+}
+
+/*--------------------------------------------------------------------
+*	ShowErrorMessage()
+*-------------------------------------------------------------------*/
+void ShowErrorMessage(const char *format, ...) {
+	va_list args;
+	va_start(args, format);
+	int len = _vscprintf(format, args) + 1; // _vscprintf doesn't count terminating '\0'
+	char *buffer = (char *)malloc(len * sizeof(buffer[0]));
+	if (buffer) {
+		vsprintf_s(buffer, len, format, args);
+		MessageBoxA(NULL, buffer, filter_name, MB_OK|MB_ICONERROR);
+		free(buffer);
+	}
+}
 
 //*/
