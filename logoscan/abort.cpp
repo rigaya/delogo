@@ -20,23 +20,12 @@
 #define tTHY     4
 
 
-class XYWH {
-public:
-	short x;
-	short y;
-	short w;
-	short h;
+typedef struct {
+	int x, y, w, h;
+} XYWH;
 
-	XYWH(void)
-		{ x=y=w=h=-1; }
-	XYWH(XYWH& r)
-		{ x=r.x; y=r.y; w=r.w; h=r.h; }
-	XYWH(int nx,int ny,int nw,int nh)
-		{ x=(short)nx; y=(short)ny; w=(short)nw; h=(short)nh; }
-};
-
-bool  Cal_BGcolor(PIXEL_YC&, PIXEL_YC*, XYWH&, int, int);
-int   comp_short(const void* x, const void* y);
+bool Cal_BGcolor(PIXEL_YC& r, PIXEL_YC* pix, XYWH& xywh, int w, int thy, short *tmp[3]);
+int comp_short(const void* x, const void* y);
 short med_average(short* s, int n);
 int CreateLogoData(AbortDlgParam* p, HWND hdlg);//FILTER* fp,ScanPixel*& sp,void*&);
 
@@ -82,6 +71,13 @@ BOOL CALLBACK AbortDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 			//----------------------------------------------- ロゴ解析
 			SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETRANGE, 0, MAKELPARAM(0, p->e - p->s + 1));
 			
+			// (幅+高さ+2)*2
+			const int tmp_buf_count = ((p->w + p->h + 2) * 2);
+			short *tmp[3];
+			tmp[0] = (short *)malloc(sizeof(tmp[0][0]) * tmp_buf_count * 3);
+			tmp[1] = tmp[0] + tmp_buf_count;
+			tmp[2] = tmp[1] + tmp_buf_count;
+			
 			while (examine <= p->e - p->s && !abort) {
 				// pump windows message
 				MSG message;
@@ -99,8 +95,8 @@ BOOL CALLBACK AbortDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 
 				// 背景平均値計算
 				PIXEL_YC bg;
-				XYWH xywh(p->x, p->y, p->w, p->h);
-				if (Cal_BGcolor(bg, pix, xywh, p->max_w, p->t)) {
+				XYWH xywh = { p->x, p->y, p->w, p->h };
+				if (Cal_BGcolor(bg, pix, xywh, p->max_w, p->t, tmp)) {
 					// 単一背景のときサンプルをセットする
 					useable++;
 					SendMessage(p->fp->hwnd, WM_SP_DRAWFRAME, 0, p->s+examine);
@@ -132,6 +128,10 @@ BOOL CALLBACK AbortDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 				examine++;
 
 			} // end of while
+
+			if (tmp[0]) {
+				free(tmp[0]);
+			}
 
 			// ロゴデータ作成
 			CreateLogoData(p,hdlg);
@@ -202,18 +202,11 @@ int CreateLogoData(AbortDlgParam* p, HWND hdlg) {
 /*--------------------------------------------------------------------
 *	背景色計算
 *-------------------------------------------------------------------*/
-bool Cal_BGcolor(PIXEL_YC& r, PIXEL_YC* pix, XYWH& xywh, int w, int thy) {
-	short* y;	// 背景色配列
-	short* cb;
-	short* cr;
-	int i, n;
-
-	n = 0;
-
-	// (幅+高さ+2)*2
-	y  = new short[(xywh.w + xywh.h + 2) * 2];
-	cb = new short[(xywh.w + xywh.h + 2) * 2];
-	cr = new short[(xywh.w + xywh.h + 2) * 2];
+bool Cal_BGcolor(PIXEL_YC& r, PIXEL_YC* pix, XYWH& xywh, int w, int thy, short *tmp[3]) {
+	short *y  = tmp[0];
+	short *cb = tmp[1];
+	short *cr = tmp[2];
+	int i, n = 0;
 
 	pix += xywh.x-1 + (xywh.y - 1) * w; // X-1, Y-1に移動
 
@@ -272,10 +265,6 @@ bool Cal_BGcolor(PIXEL_YC& r, PIXEL_YC* pix, XYWH& xywh, int w, int thy) {
 		r.cb = med_average(cb, n);
 		r.cr = med_average(cr, n);
 	}
-
-	delete[] y;
-	delete[] cb;
-	delete[] cr;
 
 	return ret;
 }
