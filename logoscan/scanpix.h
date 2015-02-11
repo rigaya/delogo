@@ -17,10 +17,6 @@
 
 class ScanPixel {
 protected:
-	short*     lst_y;
-	short*     lst_cb;
-	short*     lst_cr;
-
 	char** compressed_datas;
 	int    compressed_data_n;
 	int    compressed_data_idx;
@@ -31,7 +27,6 @@ public:
 	ScanPixel(void);
 	~ScanPixel();
 
-	int  Alloc(unsigned int f);
 	int  AddSample(PIXEL_YC& ycp);
 	//int  AddSample(PIXEL& rgb,PIXEL& rgb_bg);
 	//int  EditSample(unsigned int num,PIXEL_YC& ycp,PIXEL_YC& ycp_bg);

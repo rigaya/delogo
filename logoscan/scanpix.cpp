@@ -59,10 +59,6 @@ inline T Abs(T x) {
 *===================================================================*/
 ScanPixel::ScanPixel(void)
 {
-	lst_y    = nullptr;
-	lst_cb   = nullptr;
-	lst_cr   = nullptr;
-
 	compressed_datas = nullptr;
 	compressed_data_idx = 0;
 	compressed_data_n = 0;
@@ -77,24 +73,6 @@ ScanPixel::ScanPixel(void)
 ScanPixel::~ScanPixel()
 {
 	ClearSample();
-}
-
-/*====================================================================
-* 	Alloc()
-* 		あらかじめフレーム分だけメモリ確保
-* 		すでにある領域はクリアされる
-*===================================================================*/
-int ScanPixel::Alloc(unsigned int f)
-{
-	lst_y    = (short*)malloc(f * sizeof(short)); //new short[f];
-	lst_cb   = (short*)malloc(f * sizeof(short)); //new short[f];
-	lst_cr   = (short*)malloc(f * sizeof(short)); //new short[f];
-
-	// メモリ確保失敗
-	if (lst_y==NULL || lst_cb==NULL || lst_cr==NULL)
-			throw CANNOT_MALLOC;
-
-	return f;
 }
 
 /*====================================================================
@@ -210,10 +188,6 @@ int ScanPixel::DeleteSample(unsigned int num)
 *===================================================================*/
 int ScanPixel::ClearSample(void)
 {
-	if (lst_y)    free(lst_y);    //delete[] lst_y;
-	if (lst_cb)   free(lst_cb);   //delete[] lst_cb;
-	if (lst_cr)   free(lst_cr);   //delete[] lst_cr;
-
 	if (compressed_datas) {
 		for (int i = 0; i < compressed_data_idx; i++) {
 			if (compressed_datas[i]) {
@@ -229,10 +203,6 @@ int ScanPixel::ClearSample(void)
 	if (buffer) free(buffer);
 	buffer = nullptr;
 	buffer_idx = 0;
-	
-	lst_y    = nullptr;
-	lst_cb   = nullptr;
-	lst_cr   = nullptr;
 
 	return 0;
 }
@@ -243,14 +213,16 @@ int ScanPixel::ClearSample(void)
 *===================================================================*/
 int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const short *lst_bgy, const short *lst_bgcb, const short *lst_bgcr)
 {
-	int n = compressed_data_idx * SCAN_BUFFER_SIZE + buffer_idx;
+	const int n = compressed_data_idx * SCAN_BUFFER_SIZE + buffer_idx;
 	if (n<=1) throw NO_SAMPLE;
 
-	Alloc(n);
+	short* lst_y  = (short*)malloc(n * sizeof(short));
+	short* lst_cb = (short*)malloc(n * sizeof(short));
+	short* lst_cr = (short*)malloc(n * sizeof(short));
 	
 	const unsigned long tmp_size = (SCAN_BUFFER_SIZE + 10) * sizeof(buffer[0]);
 	unsigned char *ptr_tmp = (unsigned char *)malloc(tmp_size);
-	if (ptr_tmp == nullptr)
+	if (ptr_tmp == nullptr || lst_y == nullptr || lst_cb == nullptr || lst_cr == nullptr)
 		throw CANNOT_MALLOC;
 	
 	int i = 0;
@@ -340,6 +312,10 @@ int ScanPixel::GetLGP(LOGO_PIXEL& lgp, const short *lst_bgy, const short *lst_bg
 			lgp.cr = lgp.dp_cr = 0;
 		}
 	}
+
+	free(lst_y);
+	free(lst_cb);
+	free(lst_cr);
 	return n;
 }
 
