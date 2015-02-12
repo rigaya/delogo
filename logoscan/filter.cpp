@@ -481,7 +481,7 @@ int SetScanPixel(FILTER* fp, int w, int h, int s, int e, void* editp, char* list
 	if (sp) {
 		free(sp);
 	}
-	return 0;
+	return param.ret;
 }
 
 /*--------------------------------------------------------------------
@@ -540,7 +540,8 @@ void ScanLogoData(FILTER* fp, void* editp)
 
 	// 解析結果ダイアログ
 	dlgfp = fp;
-	DialogBox(fp->dll_hinst, "RESULT_DLG", GetWindow(fp->hwnd, GW_OWNER), ResultDlgProc);
+	if (ret == 0)
+		DialogBox(fp->dll_hinst, "RESULT_DLG", GetWindow(fp->hwnd, GW_OWNER), ResultDlgProc);
 
 	if (logodata) {
 		free(logodata);

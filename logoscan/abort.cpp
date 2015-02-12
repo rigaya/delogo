@@ -132,9 +132,8 @@ BOOL CALLBACK AbortDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 			if (tmp[0]) {
 				free(tmp[0]);
 			}
-
 			// ロゴデータ作成
-			CreateLogoData(p,hdlg);
+			p->ret = CreateLogoData(p,hdlg);
 
 			if (!abort)
 				MessageBeep((UINT)-1);

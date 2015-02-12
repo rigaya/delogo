@@ -28,6 +28,7 @@ struct AbortDlgParam {
 	void**                data;
 	int                   mark;
 	FILE*                 list;
+	int                   ret;
 };
 
 #endif
