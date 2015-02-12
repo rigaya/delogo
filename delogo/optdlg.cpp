@@ -13,8 +13,11 @@
 #include "dlg_util.h"
 
 
-#define LGD_FILTER  "ロゴデータファイル (*.lgd; *.lgd2)\0*.lgd;*.lgd2\0"\
-                    "全てのファイル (*.*)\0*.*\0"
+#define LGD_FILTER_WRITE  "ロゴデータファイルv2 (*.lgd2)\0*.lgd2\0"\
+	                      "ロゴデータファイル (*.lgd)\0*.lgd\0"\
+                          "全てのファイル (*.*)\0*.*\0"
+#define LGD_FILTER_READ   "ロゴデータファイル (*.lgd;*.lgd2)\0*.lgd;*.lgd2\0"\
+                          "全てのファイル (*.*)\0*.*\0"
 #define LGD_DEFAULT "*.lgd2"
 
 
@@ -282,7 +285,7 @@ static void on_IDC_ADD(HWND hdlg)
 {
 	char filename[MAX_PATH] = { 0 };
 	// ロードファイル名取得
-	BOOL res = optfp->exfunc->dlg_get_load_name(filename, LGD_FILTER, LGD_DEFAULT);
+	BOOL res = optfp->exfunc->dlg_get_load_name(filename, LGD_FILTER_READ, NULL);
 
 	if (res == FALSE) // キャンセル
 		return;
@@ -336,7 +339,7 @@ static void on_IDC_EXPORT(HWND hdlg)
 	// デフォルトファイル名：ロゴ名.lgd2
 	char fname[MAX_PATH];
 	wsprintf(fname, "%s.lgd2", (char *)data);
-	BOOL res = optfp->exfunc->dlg_get_save_name(fname, LGD_FILTER, fname);
+	BOOL res = optfp->exfunc->dlg_get_save_name(fname, LGD_FILTER_WRITE, fname);
 
 	if (res == FALSE) // キャンセル
 		return;

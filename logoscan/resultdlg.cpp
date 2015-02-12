@@ -8,6 +8,8 @@
 *===================================================================*/
 #include <windows.h>
 #include <commctrl.h>
+#include <shlwapi.h>
+#pragma comment(lib, "shlwapi.lib")
 #include "filter.h"
 #include "logo.h"
 #include "resultdlg.h"
@@ -16,7 +18,9 @@
 #include "dlg_util.h"
 
 
-#define LGD_FILTER  "ロゴデータファイル (*.lgd2)\0*.lgd2\0全てのファイル (*.*)\0*.*\0"
+#define LGD_FILTER  "ロゴデータファイルv2 (*.lgd2)\0*.lgd2\0"\
+	                "ロゴデータファイル (*.lgd)\0*.lgd\0"\
+                    "全てのファイル (*.*)\0*.*\0"
 #define LGD_DEFAULT "*.lgd2"
 
 
@@ -268,7 +272,7 @@ static void idc_save(HWND hdlg)
 
 	// 保存ファイル名取得
 	char filename[MAX_PATH];
-	wsprintf(filename, "%s.lgd", defname);
+	wsprintf(filename, "%s.lgd2", defname);
 	if (!dlgfp->exfunc->dlg_get_save_name(filename, LGD_FILTER, filename))
 		return;
 
@@ -287,33 +291,46 @@ static void ExportLogoData(char *fname, void *data, HWND hdlg)
 	}
 	SetFilePointer(hFile, 0,  0,  FILE_BEGIN); // 先頭へ
 	
+	int logo_header_version = (0 == _stricmp(PathFindExtension(fname), ".lgd2")) ? 2 : 1;
+
 	LOGO_FILE_HEADER lfh;
 	ZeroMemory(&lfh, sizeof(LOGO_FILE_HEADER));
-	strcpy_s(lfh.str, LOGO_FILE_HEADER_STR);
+	strcpy_s(lfh.str, (logo_header_version == 2) ? LOGO_FILE_HEADER_STR : LOGO_FILE_HEADER_STR_OLD);
 	lfh.logonum.l = SWAP_ENDIAN(1);
 
 	// ヘッダ書き込み
-	int s =0;
-	DWORD dw = 0;
-	WriteFile(hFile, &lfh, sizeof(LOGO_FILE_HEADER), &dw, NULL);
-	if (dw != sizeof(LOGO_FILE_HEADER)) { // 書き込み失敗
+	int ret = 0;
+	DWORD data_written = 0;
+	WriteFile(hFile, &lfh, sizeof(LOGO_FILE_HEADER), &data_written, NULL);
+	if (data_written != sizeof(LOGO_FILE_HEADER)) { // 書き込み失敗
 		MessageBox(hdlg, "ロゴデータ保存に失敗しました(1)", filter_name, MB_OK|MB_ICONERROR);
-		s = 1;
+		ret = 1;
 	} else {
 		// 成功
 		// データ書き込み
 		DWORD size = logo_data_size((LOGO_HEADER *)data); // データサイズ取得
-		dw = 0;
-		WriteFile(hFile, data, size, &dw, NULL);
-		if (dw != size) {
+		char *tmp = nullptr;
+		if (logo_header_version == 1) {
+			//古い形式に変換
+			tmp = (char *)calloc(size, 1);
+			LOGO_HEADER *header_src = (LOGO_HEADER *)data;
+			LOGO_HEADER_OLD *header = (LOGO_HEADER_OLD *)tmp;
+			strncpy_s(header->name, header_src->name, _TRUNCATE);
+			memcpy(((char *)header) + sizeof(header->name), ((char *)header_src) + sizeof(header_src->name), sizeof(short) * 8);
+			memcpy(header + 1, header_src + 1, logo_pixel_size(header_src));
+			size = sizeof(LOGO_HEADER_OLD) + logo_pixel_size(header_src);
+		}
+		data_written = 0;
+		WriteFile(hFile, (tmp) ? tmp : data, size, &data_written, NULL);
+		if (data_written != size) {
 			MessageBox(hdlg, "ロゴデータ保存に失敗しました(2)", filter_name, MB_OK|MB_ICONERROR);
-			s = 1;
+			ret = 1;
 		}
 	}
 
 	CloseHandle(hFile);
 
-	if (s) // エラーがあったとき
+	if (ret) // エラーがあったとき
 		DeleteFile(fname); // ファイル削除
 }
 
