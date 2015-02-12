@@ -119,7 +119,7 @@ void ScanLogoData(FILTER* fp, void* editp);
 //	FILTER_DLL構造体
 //----------------------------
 char filter_name[] = "ロゴ解析";
-char filter_info[] = "ロゴ解析プラグイン ver 0.07+2 by rigaya";
+char filter_info[] = "ロゴ解析プラグイン ver 0.07+r07 by rigaya";
 
 #define track_N 5
 #if track_N
