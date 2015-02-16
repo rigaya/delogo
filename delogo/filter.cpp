@@ -141,9 +141,13 @@
 *    常に従来の設定ファイルで書き出されるようになっていたのを修正。
 *    ファイルフィルタを選択型に変更。
 *
+*  2015/02/14 (+r08)
+*    delogo.auf.iniの記述に従って、自動的にロゴを選択するモードを追加。
+*
 **************************************************************************************************/
 
 #include <windows.h>
+#include <stdio.h>
 #include <commctrl.h>
 #include <shlwapi.h>
 #pragma comment(lib, "shlwapi.lib")
@@ -157,10 +161,12 @@
 #include "logodef.h"
 #include "delogo_proc.h"
 
+#define LOGO_AUTO_SELECT 1
 
-#define ID_BUTTON_OPTION 40001
-#define ID_COMBO_LOGO    40002
-#define ID_BUTTON_SYNTH  40003
+#define ID_BUTTON_OPTION          40001
+#define ID_COMBO_LOGO             40002
+#define ID_BUTTON_SYNTH           40003
+#define ID_LABEL_LOGO_AUTO_SELECT 40004
 
 #define Abs(x) ((x>0)? x:-x)
 #define Clamp(n,l,h) ((n<l) ? l : (n>h) ? h : n)
@@ -178,11 +184,39 @@ typedef struct {
 	HWND  cb_logo;
 	HWND  bt_opt;
 	HWND  bt_synth;
+#if LOGO_AUTO_SELECT
+	HWND  lb_auto_select;
+#endif
 } FILTER_DIALOG;
 
 static FILTER_DIALOG dialog = { 0 };
 
 static char  logodata_file[MAX_PATH] = { 0 };	// ロゴデータファイル名(INIに保存)
+
+#if LOGO_AUTO_SELECT
+#define LOGO_AUTO_SELECT_STR "ファイル名から自動選択"
+
+typedef struct LOGO_SELECT_KEY {
+	char *key;
+	char logoname[LOGO_MAX_NAME];
+} LOGO_SELECT_KEY;
+
+typedef struct LOGO_AUTO_SELECT_DATA {
+	int count;
+	LOGO_SELECT_KEY *keys;
+	char src_filename[MAX_PATH];
+	int num_selected;
+} LOGO_AUTO_SELECT_DATA;
+
+static LOGO_HEADER LOGO_HEADER_AUTO_SELECT = { LOGO_AUTO_SELECT_STR };
+static LOGO_AUTO_SELECT_DATA logo_select = { 0 };
+#endif
+
+#if LOGO_AUTO_SELECT
+#define LOGO_AUTO_SELECT_USED (!!logo_select.count)
+#else
+#define LOGO_AUTO_SELECT_USED 0
+#endif
 
 static LOGO_HEADER** logodata   = NULL;
 static unsigned int  logodata_n = 0;
@@ -203,6 +237,13 @@ static void on_wm_filter_init(FILTER* fp);
 static void on_wm_filter_exit(FILTER* fp);
 static void init_dialog(HWND hwnd,HINSTANCE hinst);
 static void update_cb_logo(char *name);
+#if LOGO_AUTO_SELECT
+static void on_wm_filter_file_close(FILTER* fp);
+static void logo_auto_select_apply(FILTER *fp, int num);
+static void logo_auto_select_remove(FILTER *fp);
+static int logo_auto_select(FILTER* fp, FILTER_PROC_INFO *fpip);
+#endif
+static void load_logo_param(FILTER* fp, int num);
 static void change_param(FILTER* fp);
 static void set_cb_logo(FILTER* fp);
 static int  set_combo_item(void* data);
@@ -223,7 +264,7 @@ BOOL func_proc_add_logo(FILTER *fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int);
 //	FILTER_DLL構造体
 //----------------------------
 char filter_name[] = LOGO_FILTER_NAME;
-static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r07 by rigaya";
+static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r08 by rigaya";
 #define track_N 10
 #if track_N
 static TCHAR *track_name[track_N] = { 	"位置 X", "位置 Y", 
@@ -365,7 +406,7 @@ BOOL func_exit( FILTER *fp )
 {
 	// ロゴデータ開放
 	if (logodata) {
-		for (unsigned int i = 0; i < logodata_n; i++) {
+		for (unsigned int i = LOGO_AUTO_SELECT_USED; i < logodata_n; i++) {
 			if (logodata[i]) {
 				free(logodata[i]);
 				logodata[i] = NULL;
@@ -393,8 +434,23 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip)
 	int num = find_logo((const char *)fp->ex_data_ptr);
 	if (num < 0) return FALSE;
 
-	unsigned int size = sizeof(LOGO_HEADER)
-		               + (logodata[num]->h + 1) * (logodata[num]->w + 1) * sizeof(LOGO_PIXEL);
+#if LOGO_AUTO_SELECT
+	//ロゴ自動選択
+	if (logo_select.count) {
+		if (num == 0) {
+			if (0 <= (num = logo_auto_select(fp, fpip))) {
+				//"0"あるいは正の値なら変更あり (負なら以前から変更なし)
+				logo_auto_select_apply(fp, num);
+				if (num == 0) return TRUE; //選択されたロゴがなければ終了
+			}
+			num = Abs(num);
+		} else {
+			logo_auto_select_remove(fp);
+		}
+	}
+#endif
+
+	unsigned int size = sizeof(LOGO_HEADER) + (logodata[num]->h + 1) * (logodata[num]->w + 1) * sizeof(LOGO_PIXEL);
 	if (size > adjdata_size) {
 		adjdata = (LOGO_HEADER *)realloc(adjdata, size);
 		adjdata_size = size;
@@ -422,6 +478,56 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip)
 	else
 		return func_proc_add_logo(fp, fpip, adjdata, fade); // ロゴ付加モード
 }
+
+#if LOGO_AUTO_SELECT
+/*--------------------------------------------------------------------
+* 	logo_auto_select_apply()
+*-------------------------------------------------------------------*/
+static void logo_auto_select_apply(FILTER *fp, int num) {
+	SetWindowPos(fp->hwnd, 0, 0, 0, 320, WND_Y + 20, SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+	SendMessage(dialog.lb_auto_select, WM_SETTEXT, 0, ((num == 0) ? (LPARAM)"なし" : (LPARAM)logodata[num]));
+	load_logo_param(fp, num);
+}
+
+/*--------------------------------------------------------------------
+* 	logo_auto_select_remove()
+*-------------------------------------------------------------------*/
+static void logo_auto_select_remove(FILTER *fp) {
+	char buf[LOGO_MAX_NAME] = { 0 };
+	GetWindowText(dialog.lb_auto_select, buf, _countof(buf));
+	if (strlen(buf)) {
+		SendMessage(dialog.lb_auto_select, WM_SETTEXT, 0, (LPARAM)"");
+		SetWindowPos(fp->hwnd, 0, 0, 0, 320, WND_Y, SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+		fp->track[LOGO_STRT] = 0;
+		fp->track[LOGO_FIN]  = 0;
+		fp->track[LOGO_FOUT] = 0;
+		fp->track[LOGO_END]  = 0;
+		fp->exfunc->filter_window_update(fp);
+	}
+}
+
+/*--------------------------------------------------------------------
+* 	logo_auto_select() 自動選択のロゴ名を取得
+*-------------------------------------------------------------------*/
+int logo_auto_select(FILTER* fp, FILTER_PROC_INFO *fpip) {
+	int source_id, source_video_number;
+	FILE_INFO file_info;
+	if (fp->exfunc->get_source_video_number(fpip->editp, fpip->frame, &source_id, &source_video_number)
+		&& fp->exfunc->get_source_file_info(fpip->editp, &file_info, source_id)) {
+
+		if (0 == _stricmp(file_info.name, logo_select.src_filename))
+			return -logo_select.num_selected; //変更なし
+
+		strcpy_s(logo_select.src_filename, file_info.name);
+		for (int i = 0; i < logo_select.count; i++) {
+			if (strstr(logo_select.src_filename, logo_select.keys[i].key)) {
+				return (logo_select.num_selected = find_logo(logo_select.keys[i].logoname));
+			}
+		}
+	}
+	return (logo_select.num_selected = 0); //見つからなかった
+}
+#endif //LOGO_AUTO_SELECT
 
 /*--------------------------------------------------------------------
 * 	func_proc_eraze_logo()	ロゴ除去モード
@@ -622,7 +728,11 @@ BOOL func_WndProc( HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, void *
 		case WM_FILTER_EXIT: // 終了
 			on_wm_filter_exit(fp);
 			break;
-
+#if LOGO_AUTO_SELECT
+		case WM_FILTER_FILE_CLOSE:
+			on_wm_filter_file_close(fp); //ファイルクローズ
+			break;
+#endif //LOGO_AUTO_SELECT
 		case WM_FILTER_UPDATE: // フィルタ更新
 		case WM_FILTER_SAVE_END: // セーブ終了
 			// コンボボックス表示更新
@@ -731,7 +841,7 @@ static void on_wm_filter_exit(FILTER* fp)
 	} else { // 成功
 		int total_count = 0;
 		// 各データ書き込み
-		for (int i = 0; i < num; i++) {
+		for (int i = LOGO_AUTO_SELECT_USED; i < num; i++) {
 			data_written = 0;
 			LOGO_HEADER *data = (LOGO_HEADER *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0); // データのポインタ取得
 			WriteFile(hFile, data, logo_data_size(data), &data_written, NULL);
@@ -755,6 +865,18 @@ static void on_wm_filter_exit(FILTER* fp)
 	// INIにロゴデータファイル名保存
 	fp->exfunc->ini_save_str(fp, LDP_KEY, logodata_file);
 }
+
+#if LOGO_AUTO_SELECT
+/*--------------------------------------------------------------------
+* 	on_wm_filter_file_close() ファイルのクローズ
+* 		ロゴの自動選択になっていたら、画面を元に戻す
+*-------------------------------------------------------------------*/
+static void on_wm_filter_file_close(FILTER* fp) {
+	logo_auto_select_remove(fp);
+	logo_select.src_filename[0] = '\0';
+	logo_select.num_selected = 0;
+}
+#endif
 
 /*--------------------------------------------------------------------
 *	init_dialog()		ダイアログアイテムを作る
@@ -782,6 +904,13 @@ static void init_dialog(HWND hwnd, HINSTANCE hinst)
 	dialog.bt_synth = CreateWindow("BUTTON", "AviSynth", WS_CHILD|WS_VISIBLE|BS_PUSHBUTTON|BS_VCENTER,
 									240,ITEM_Y-60, 66,24, hwnd, (HMENU)ID_BUTTON_SYNTH, hinst, NULL);
 	SendMessage(dialog.bt_synth, WM_SETFONT, (WPARAM)dialog.font, 0);
+
+#if LOGO_AUTO_SELECT
+	//自動選択ロゴ表示
+	dialog.lb_auto_select = CreateWindow("static", "", SS_SIMPLE | WS_CHILD | WS_VISIBLE,
+									20,ITEM_Y+23, 288,24, hwnd, (HMENU)ID_LABEL_LOGO_AUTO_SELECT, hinst, NULL);
+	SendMessage(dialog.lb_auto_select, WM_SETFONT, (WPARAM)dialog.font, 0);
+#endif
 }
 
 /*--------------------------------------------------------------------
@@ -992,6 +1121,20 @@ static void update_cb_logo(char *name)
 }
 
 /*--------------------------------------------------------------------
+*	load_logo_param()
+*		指定したロゴデータを拡張データ領域にコピー
+*-------------------------------------------------------------------*/
+static void load_logo_param(FILTER* fp, int num) {
+	if (logodata[num]->fi || logodata[num]->fo || logodata[num]->st || logodata[num]->ed) {
+		fp->track[LOGO_STRT] = logodata[num]->st;
+		fp->track[LOGO_FIN]  = logodata[num]->fi;
+		fp->track[LOGO_FOUT] = logodata[num]->fo;
+		fp->track[LOGO_END]  = logodata[num]->ed;
+		fp->exfunc->filter_window_update(fp);
+	}
+}
+
+/*--------------------------------------------------------------------
 *	change_param()		パラメータの変更
 *		選択されたロゴデータを拡張データ領域にコピー
 *-------------------------------------------------------------------*/
@@ -1010,13 +1153,7 @@ static void change_param(FILTER* fp)
 	ret = find_logo((char *)ret);
 	if (ret < 0) return;
 
-	if (logodata[ret]->fi || logodata[ret]->fo || logodata[ret]->st || logodata[ret]->ed) {
-		fp->track[LOGO_STRT] = logodata[ret]->st;
-		fp->track[LOGO_FIN]  = logodata[ret]->fi;
-		fp->track[LOGO_FOUT] = logodata[ret]->fo;
-		fp->track[LOGO_END]  = logodata[ret]->ed;
-		fp->exfunc->filter_window_update(fp);
-	}
+	load_logo_param(fp, ret);
 }
 
 /*--------------------------------------------------------------------
@@ -1112,8 +1249,14 @@ static void read_logo_pack(char *fname, FILTER *fp)
 	}
 
 	const size_t logo_header_size = (logo_header_ver == 2) ? sizeof(LOGO_HEADER) : sizeof(LOGO_HEADER_OLD);
-	logodata_n = 0;	// 書き込みデータカウンタ
-	logodata = NULL;
+	logodata_n = LOGO_AUTO_SELECT_USED; // 書き込みデータカウンタ
+	logodata = nullptr;
+#if LOGO_AUTO_SELECT
+	if (logo_select.count) {
+		logodata  = (LOGO_HEADER**)malloc(sizeof(LOGO_HEADER *) * 1);
+		logodata[0] = &LOGO_HEADER_AUTO_SELECT;
+	}
+#endif
 	int logonum = SWAP_ENDIAN(logo_file_header.logonum.l);
 
 	for (int i = 0; i < logonum; i++) {
@@ -1221,7 +1364,7 @@ static BOOL on_option_button(FILTER* fp)
 
 		// logodata配列再構成
 		logodata = (LOGO_HEADER **)realloc(logodata, logodata_n * sizeof(logodata));
-		for (unsigned int i = 0; i < logodata_n; i++)
+		for (unsigned int i = LOGO_AUTO_SELECT_USED; i < logodata_n; i++)
 			logodata[i] = (LOGO_HEADER *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0);
 
 		if (logodata_n)	// 拡張データ初期値設定
@@ -1380,6 +1523,30 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 			GetPrivateProfileString("string", key, filter.check_name[i], strings[i+TRACK_N+1], FILTER_CHECK_MAX, ini_name);
 			filter.check_name[i] = strings[i+TRACK_N+1];
 		}
+
+#if LOGO_AUTO_SELECT
+		//自動選択キー
+		logo_select.count = 0;
+		for (; ; logo_select.count++) {
+			char buf[512] = { 0 };
+			sprintf_s(key, "logo%d", logo_select.count+1);
+			GetPrivateProfileString("LOGO_AUTO_SELECT", key, "", buf, sizeof(buf), ini_name);
+			if (strlen(buf) == 0)
+				break;
+		}
+		if (logo_select.count) {
+			logo_select.keys = (LOGO_SELECT_KEY *)calloc(logo_select.count, sizeof(logo_select.keys[0]));
+			for (int i = 0; i < logo_select.count; i++) {
+				char buf[512] ={ 0 };
+				sprintf_s(key, "logo%d", i+1);
+				GetPrivateProfileString("LOGO_AUTO_SELECT", key, "", buf, sizeof(buf), ini_name);
+				char *ptr = strchr(buf, ',');
+				logo_select.keys[i].key = (char *)calloc(ptr - buf + 1, sizeof(logo_select.keys[i].key[0]));
+				memcpy(logo_select.keys[i].key, buf, ptr - buf);
+				strcpy_s(logo_select.keys[i].logoname, ptr+1);
+			}
+		}
+#endif
 		break;
 
 	case DLL_PROCESS_DETACH: // 終了時
@@ -1388,6 +1555,16 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 			free(strings[i]);
 			strings[i] = NULL;
 		}
+#if LOGO_AUTO_SELECT
+		if (logo_select.keys) {
+			for (int i = 0; i < logo_select.count; i++) {
+				if (logo_select.keys[i].key)
+					free(logo_select.keys[i].key);
+			}
+			free(logo_select.keys);
+			memset(&logo_select, 0, sizeof(logo_select));
+		}
+#endif
 		break;
 
 	case DLL_THREAD_ATTACH:
