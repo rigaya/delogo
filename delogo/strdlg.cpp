@@ -17,7 +17,7 @@ static BOOL CopyTextToClipboard(HWND hwnd, const char* text);
 *===================================================================*/
 BOOL CALLBACK StrDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	char str[STRDLG_MAXSTR] = { 0 };
+	static char str[STRDLG_MAXSTR] = { 0 };
 
 	switch (msg) {
 		case WM_INITDIALOG:

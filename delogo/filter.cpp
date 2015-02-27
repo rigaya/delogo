@@ -1415,12 +1415,17 @@ static void set_sended_data(void* data, FILTER* fp)
 *-------------------------------------------------------------------*/
 static BOOL on_avisynth_button(FILTER* fp, void *editp)
 {
-	char str[STRDLG_MAXSTR];
-
+	char str[STRDLG_MAXSTR] = { 0 };
+	const char *logo_ptr = (char *)fp->ex_data_ptr;
+#if LOGO_AUTO_SELECT
+	if (0 == strcmp(logo_ptr, LOGO_AUTO_SELECT_STR)) {
+		logo_ptr = (logo_select.num_selected == LOGO_AUTO_SELECT_NONE) ? "なし" : logodata[logo_select.num_selected]->name;
+	}
+#endif
 	// スクリプト生成
 	wsprintf(str,"%sLOGO(logofile=\"%s\",\r\n"
 	             "\\           logoname=\"%s\"",
-				(fp->check[0]? "Add":"Erase"), logodata_file, fp->ex_data_ptr);
+				(fp->check[0]? "Add":"Erase"), logodata_file, logo_ptr);
 
 	if (fp->track[LOGO_X] || fp->track[LOGO_Y])
 		wsprintf(str, "%s,\r\n\\           pos_x=%d, pos_y=%d",
