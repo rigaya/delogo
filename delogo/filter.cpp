@@ -174,8 +174,7 @@
 
 #define LDP_KEY     "logofile"
 #define LDP_DEFAULT "logodata.ldp2"
-#define LDP_FILTER  "ロゴデータパック (*.ldp; *.ldp2)\0*.ldp;*.ldp2\0"\
-                    "AllFiles (*.*)\0*.*\0"
+#define LDP_FILTER  "ロゴデータパック (*.ldp; *.ldp2)\0*.ldp;*.ldp2\0AllFiles (*.*)\0*.*\0"
 
 
 // ダイアログアイテム
@@ -195,6 +194,7 @@ static char  logodata_file[MAX_PATH] = { 0 };	// ロゴデータファイル名(
 
 #if LOGO_AUTO_SELECT
 #define LOGO_AUTO_SELECT_STR "ファイル名から自動選択"
+#define LOGO_AUTO_SELECT_NONE INT_MAX
 
 typedef struct LOGO_SELECT_KEY {
 	char *key;
@@ -441,9 +441,9 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip)
 			if (0 <= (num = logo_auto_select(fp, fpip))) {
 				//"0"あるいは正の値なら変更あり (負なら以前から変更なし)
 				logo_auto_select_apply(fp, num);
-				if (num == 0) return TRUE; //選択されたロゴがなければ終了
 			}
 			num = Abs(num);
+			if (num == LOGO_AUTO_SELECT_NONE) return TRUE; //選択されたロゴがなければ終了
 		} else {
 			logo_auto_select_remove(fp);
 		}
@@ -485,8 +485,7 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip)
 *-------------------------------------------------------------------*/
 static void logo_auto_select_apply(FILTER *fp, int num) {
 	SetWindowPos(fp->hwnd, 0, 0, 0, 320, WND_Y + 20, SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
-	SendMessage(dialog.lb_auto_select, WM_SETTEXT, 0, ((num == 0) ? (LPARAM)"なし" : (LPARAM)logodata[num]));
-	load_logo_param(fp, num);
+	SendMessage(dialog.lb_auto_select, WM_SETTEXT, 0, ((num == LOGO_AUTO_SELECT_NONE) ? (LPARAM)"なし" : (LPARAM)logodata[num]));
 }
 
 /*--------------------------------------------------------------------
@@ -525,7 +524,7 @@ int logo_auto_select(FILTER* fp, FILTER_PROC_INFO *fpip) {
 			}
 		}
 	}
-	return (logo_select.num_selected = 0); //見つからなかった
+	return (logo_select.num_selected = LOGO_AUTO_SELECT_NONE); //見つからなかった
 }
 #endif //LOGO_AUTO_SELECT
 
