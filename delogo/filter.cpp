@@ -144,6 +144,10 @@
 *  2015/02/14 (+r08)
 *    delogo.auf.iniの記述に従って、自動的にロゴを選択するモードを追加。
 *
+*  2015/02/28 (+r10)
+*    自動選択の結果が"なし"のときに速度低下するのを抑制。
+*    クリップボードへのコピーがうまく機能していなかったのを修正。
+*
 **************************************************************************************************/
 
 #include <windows.h>
@@ -264,7 +268,7 @@ BOOL func_proc_add_logo(FILTER *fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int);
 //	FILTER_DLL構造体
 //----------------------------
 char filter_name[] = LOGO_FILTER_NAME;
-static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r08 by rigaya";
+static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r10 by rigaya";
 #define track_N 10
 #if track_N
 static TCHAR *track_name[track_N] = { 	"位置 X", "位置 Y", 
