@@ -151,6 +151,9 @@
 *  2015/05/24 (+r11)
 *    編集ダイアログの開始・終了の入力欄で、負の値が入力できないのを修正。
 *
+*  2015/05/24 (+r12)
+*    編集ダイアログの開始・終了の入力欄で負の値が保存時できていないのを修正。
+*
 **************************************************************************************************/
 
 #include <windows.h>
@@ -271,7 +274,7 @@ BOOL func_proc_add_logo(FILTER *fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int);
 //	FILTER_DLL構造体
 //----------------------------
 char filter_name[] = LOGO_FILTER_NAME;
-static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r11 by rigaya";
+static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r12 by rigaya";
 #define track_N 10
 #if track_N
 static TCHAR *track_name[track_N] = { 	"位置 X", "位置 Y", 

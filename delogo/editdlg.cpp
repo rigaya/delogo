@@ -92,10 +92,10 @@ void on_wm_initdialog(HWND hdlg)
 	SendDlgItemMessage(hdlg, ID_EDIT_SPINY,  UDM_SETRANGE,    0,                        0x7fff);
 
 	SetDlgItemText(hdlg, ID_EDIT_NAME,  lp->name);
-	SetDlgItemInt(hdlg,  ID_EDIT_START, lp->st, FALSE);
-	SetDlgItemInt(hdlg,  ID_EDIT_END,   lp->ed, FALSE);
-	SetDlgItemInt(hdlg,  ID_EDIT_FIN,   lp->fi, FALSE);
-	SetDlgItemInt(hdlg,  ID_EDIT_FOUT,  lp->fo, FALSE);
+	SetDlgItemInt(hdlg,  ID_EDIT_START, lp->st,  TRUE);
+	SetDlgItemInt(hdlg,  ID_EDIT_END,   lp->ed,  TRUE);
+	SetDlgItemInt(hdlg,  ID_EDIT_FIN,   lp->fi,  TRUE);
+	SetDlgItemInt(hdlg,  ID_EDIT_FOUT,  lp->fo,  TRUE);
 	SetDlgItemInt(hdlg,  ID_EDIT_X,     lp->x,  FALSE);
 	SetDlgItemInt(hdlg,  ID_EDIT_Y,     lp->y,  FALSE);
 
@@ -156,10 +156,10 @@ BOOL on_IDOK(HWND hdlg)
 
 	// ロゴデータ設定
 	lstrcpy(newdata->name, newname);
-	newdata->st = (short)min((int)GetDlgItemInt(hdlg, ID_EDIT_START, NULL, FALSE), track_e[6]);
-	newdata->ed = (short)min((int)GetDlgItemInt(hdlg, ID_EDIT_END,   NULL, FALSE), track_e[9]);
-	newdata->fi = (short)min((int)GetDlgItemInt(hdlg, ID_EDIT_FIN,   NULL, FALSE), track_e[7]);
-	newdata->fo = (short)min((int)GetDlgItemInt(hdlg, ID_EDIT_FOUT,  NULL, FALSE), track_e[8]);
+	newdata->st = (short)min((int)GetDlgItemInt(hdlg, ID_EDIT_START, NULL,  TRUE), track_e[6]);
+	newdata->ed = (short)min((int)GetDlgItemInt(hdlg, ID_EDIT_END,   NULL,  TRUE), track_e[9]);
+	newdata->fi = (short)min((int)GetDlgItemInt(hdlg, ID_EDIT_FIN,   NULL,  TRUE), track_e[7]);
+	newdata->fo = (short)min((int)GetDlgItemInt(hdlg, ID_EDIT_FOUT,  NULL,  TRUE), track_e[8]);
 	newdata->x  =          (short)GetDlgItemInt(hdlg, ID_EDIT_X,     NULL, FALSE);
 	newdata->y  =          (short)GetDlgItemInt(hdlg, ID_EDIT_Y,     NULL, FALSE);
 
