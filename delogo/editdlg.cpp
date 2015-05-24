@@ -12,6 +12,7 @@
 #include "dlg_util.h"
 
 extern char filter_name[];	// フィルタ名[filter.c]
+extern int  track_s[];      //トラックの最大値 [filter.c]
 extern int  track_e[];      //トラックの最大値 [filter.c]
 
 static HWND owner;	// 親ウインドウ
@@ -76,19 +77,19 @@ void on_wm_initdialog(HWND hdlg)
 	lp = (LOGO_HEADER *)SendDlgItemMessage(owner, IDC_LIST, LB_GETITEMDATA, list_n, 0);
 
 	// エディットボックス
-	SendDlgItemMessage(hdlg, ID_EDIT_NAME,   EM_SETLIMITTEXT, LOGO_MAX_NAME-1, 0);
-	SendDlgItemMessage(hdlg, ID_EDIT_START,  EM_SETLIMITTEXT, 4,               0);
-	SendDlgItemMessage(hdlg, ID_EDIT_END,    EM_SETLIMITTEXT, 4,               0);
-	SendDlgItemMessage(hdlg, ID_EDIT_FIN,    EM_SETLIMITTEXT, 3,               0);
-	SendDlgItemMessage(hdlg, ID_EDIT_FOUT,   EM_SETLIMITTEXT, 3,               0);
-	SendDlgItemMessage(hdlg, ID_EDIT_SPINST, UDM_SETRANGE,    0,      track_e[6]);
-	SendDlgItemMessage(hdlg ,ID_EDIT_SPINED, UDM_SETRANGE,    0,      track_e[9]);
-	SendDlgItemMessage(hdlg, ID_EDIT_SPINFI, UDM_SETRANGE,    0,      track_e[7]);
-	SendDlgItemMessage(hdlg, ID_EDIT_SPINFO, UDM_SETRANGE,    0,      track_e[8]);
-	SendDlgItemMessage(hdlg, ID_EDIT_X,      EM_SETLIMITTEXT, 5,               0);
-	SendDlgItemMessage(hdlg, ID_EDIT_Y,      EM_SETLIMITTEXT, 5,               0);
-	SendDlgItemMessage(hdlg, ID_EDIT_SPINX,  UDM_SETRANGE,    0,          0x7fff); // signed 16bitの上限
-	SendDlgItemMessage(hdlg, ID_EDIT_SPINY,  UDM_SETRANGE,    0,          0x7fff);
+	SendDlgItemMessage(hdlg, ID_EDIT_NAME,   EM_SETLIMITTEXT, LOGO_MAX_NAME-1,               0);
+	SendDlgItemMessage(hdlg, ID_EDIT_START,  EM_SETLIMITTEXT, 4,                             0);
+	SendDlgItemMessage(hdlg, ID_EDIT_END,    EM_SETLIMITTEXT, 4,                             0);
+	SendDlgItemMessage(hdlg, ID_EDIT_FIN,    EM_SETLIMITTEXT, 3,                             0);
+	SendDlgItemMessage(hdlg, ID_EDIT_FOUT,   EM_SETLIMITTEXT, 3,                             0);
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINST, UDM_SETRANGE,    0, track_e[6] | track_s[6] << 16);
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINED, UDM_SETRANGE,    0, track_e[9] | track_s[9] << 16);
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINFI, UDM_SETRANGE,    0, track_e[7] | track_s[7] << 16);
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINFO, UDM_SETRANGE,    0, track_e[8] | track_s[8] << 16);
+	SendDlgItemMessage(hdlg, ID_EDIT_X,      EM_SETLIMITTEXT, 5,                             0);
+	SendDlgItemMessage(hdlg, ID_EDIT_Y,      EM_SETLIMITTEXT, 5,                             0);
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINX,  UDM_SETRANGE,    0,                        0x7fff); // signed 16bitの上限
+	SendDlgItemMessage(hdlg, ID_EDIT_SPINY,  UDM_SETRANGE,    0,                        0x7fff);
 
 	SetDlgItemText(hdlg, ID_EDIT_NAME,  lp->name);
 	SetDlgItemInt(hdlg,  ID_EDIT_START, lp->st, FALSE);
