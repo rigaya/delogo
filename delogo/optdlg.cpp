@@ -376,7 +376,7 @@ static void on_IDC_UP(HWND hdlg)
 	}
 
 	// データ・文字列取得
-	char str[128] = { 0 };
+	char str[LOGO_MAX_NAME] = { 0 };
 	void *data = (void *)SendDlgItemMessage(hdlg, IDC_LIST, LB_GETITEMDATA, n, 0);
 	SendDlgItemMessage(hdlg, IDC_LIST, LB_GETTEXT, n, (LPARAM)str);
 
@@ -405,7 +405,7 @@ static void on_IDC_DOWN(HWND hdlg)
 	}
 
 	// データ・文字列取得
-	char str[128] = { 0 };
+	char str[LOGO_MAX_NAME] = { 0 };
 	void *data = (void *)SendDlgItemMessage(hdlg, IDC_LIST, LB_GETITEMDATA, n, 0);
 	SendDlgItemMessage(hdlg, IDC_LIST, LB_GETTEXT, n, (LPARAM)str);
 
@@ -527,7 +527,7 @@ static int ReadLogoData(char *fname, HWND hdlg)
 	}
 
 	if (logo_header_ver == 2 && 0 == _stricmp(".lgd", PathFindExtension(fname))) {
-		char new_filename[1024];
+		char new_filename[1024] = { 0 };
 		strcpy_s(new_filename, fname);
 		strcat_s(new_filename, "2");
 		MoveFile(fname, new_filename);
@@ -660,7 +660,7 @@ static void CopyLBtoCB(HWND hdlg, HWND combo)
 	num = SendDlgItemMessage(hdlg, IDC_LIST, LB_GETCOUNT, 0, 0);
 	for (int i = 0; i < num; i++) {
 		// アイテム取得
-		char str[128];
+		char str[LOGO_MAX_NAME] = { 0 };
 		void *data = (void *)SendDlgItemMessage(hdlg, IDC_LIST, LB_GETITEMDATA, i, 0);
 		SendDlgItemMessage(hdlg, IDC_LIST, LB_GETTEXT, i, (LPARAM)str);
 
@@ -677,9 +677,9 @@ static void CopyCBtoLB(HWND hdlg, HWND combo)
 {
 	// コピー
 	int num = SendMessage(combo, CB_GETCOUNT, 0, 0);
-	for (int i = 0; i < num; i++){
+	for (int i = 0; i < num; i++) {
 		// アイテム取得
-		char str[128];
+		char str[LOGO_MAX_NAME] = { 0 };
 		void *data = (void *)SendMessage(combo, CB_GETITEMDATA, i, 0);
 		SendMessage(combo,CB_GETLBTEXT, i, (LPARAM)str);
 
