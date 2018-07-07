@@ -1,11 +1,11 @@
 ﻿/*********************************************************************
 * 	回帰直線方程式の取得（最小二乗法）   approxim.h
-* 
+*
 * N個の要素(Xi,Yi)-> Y = a * X + b
-* 
+*
 * a = (N*ΣXiYi - ΣXi*ΣYi)/(N*ΣXi^2 -(ΣXi)^2)
 * b = (Σ(Xi^2)*ΣYi - ΣXi*Σ(Xi*Yi))/(N*ΣXi^2 -(ΣXi)^2)
-* 
+*
 *********************************************************************/
 #ifndef ___APPROXIM_H
 #define ___APPROXIM_H
@@ -23,19 +23,19 @@
 template <class T>
 bool approxim_line(T* x, T* y, int n, double& a, double& b)
 {
-	double sum_x  = sum(x,n);	// ΣXi
-	double sum_y  = sum(y,n);	// ΣYi
-	double sum_x2 = sq_sum(x,x,n);	// Σ(X^2)
-	double sum_xy = sq_sum(x,y,n);	// Σ(X*Y)
+    double sum_x  = sum(x,n);	// ΣXi
+    double sum_y  = sum(y,n);	// ΣYi
+    double sum_x2 = sq_sum(x,x,n);	// Σ(X^2)
+    double sum_xy = sq_sum(x,y,n);	// Σ(X*Y)
 
-	// 0での商算回避
-	double temp = (double)n * sum_x2 - sum_x * sum_x;
-	if (temp==0.0) return false;
+    // 0での商算回避
+    double temp = (double)n * sum_x2 - sum_x * sum_x;
+    if (temp==0.0) return false;
 
-	a = ((double)n * sum_xy - sum_x * sum_y) / temp;
-	b = (sum_x2 * sum_y - sum_x * sum_xy) / temp;
+    a = ((double)n * sum_xy - sum_x * sum_y) / temp;
+    b = (sum_x2 * sum_y - sum_x * sum_xy) / temp;
 
-	return true;
+    return true;
 }
 
 /*--------------------------------------------------------------------
@@ -46,11 +46,11 @@ bool approxim_line(T* x, T* y, int n, double& a, double& b)
 template <class T>
 static double sum(T* x, int n)
 {
-	double a = 0.0;
-	for (int i = 0; i < n; i++)
-		a += x[i];
+    double a = 0.0;
+    for (int i = 0; i < n; i++)
+        a += x[i];
 
-	return a;
+    return a;
 }
 
 /*--------------------------------------------------------------------
@@ -62,11 +62,11 @@ static double sum(T* x, int n)
 template <class T>
 static double sq_sum(T* x, T* y, int n)
 {
-	double a = 0.0;
-	for (int i = 0; i < n; i++)
-		a += x[i] * y[i];
+    double a = 0.0;
+    for (int i = 0; i < n; i++)
+        a += x[i] * y[i];
 
-	return a;
+    return a;
 }
 
 

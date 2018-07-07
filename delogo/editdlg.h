@@ -4,6 +4,8 @@
 #ifndef ___EDITDLG_H
 #define ___EDITDLG_H
 
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 
 // ダイアログプロシージャ

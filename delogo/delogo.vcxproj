@@ -14,19 +14,19 @@
     <ProjectGuid>{3F5F9509-F299-4D94-9B91-BA1DA4CDCC4F}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>delogo</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v142</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
@@ -98,11 +98,13 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="delogo_proc.cpp" />
+    <ClCompile Include="delogo_proc_avx.cpp" />
     <ClCompile Include="delogo_proc_avx2.cpp">
       <EnableEnhancedInstructionSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AdvancedVectorExtensions</EnableEnhancedInstructionSet>
     </ClCompile>
     <ClCompile Include="delogo_proc_sse2.cpp" />
     <ClCompile Include="delogo_proc_sse41.cpp" />
+    <ClCompile Include="delogo_proc_ssse3.cpp" />
     <ClCompile Include="editdlg.cpp" />
     <ClCompile Include="filter.cpp" />
     <ClCompile Include="optdlg.cpp" />
@@ -111,6 +113,7 @@
   <ItemGroup>
     <ClInclude Include="delogo_proc.h" />
     <ClInclude Include="delogo_proc_simd.h" />
+    <ClInclude Include="delogo_util.h" />
     <ClInclude Include="dlg_util.h" />
     <ClInclude Include="editdlg.h" />
     <ClInclude Include="filter.h" />
@@ -119,6 +122,7 @@
     <ClInclude Include="optdlg.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="send_lgd.h" />
+    <ClInclude Include="smooth_simd.h" />
     <ClInclude Include="strdlg.h" />
   </ItemGroup>
   <ItemGroup>

@@ -4,6 +4,8 @@
 #ifndef ___OPTDLG_H
 #define ___OPTDLG_H
 
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "filter.h"
 

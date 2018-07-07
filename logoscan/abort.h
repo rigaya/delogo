@@ -18,17 +18,17 @@
 BOOL CALLBACK AbortDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam);
 
 struct AbortDlgParam {
-	FILTER*               fp;
-	void*                 editp;
-	SCAN_PIXEL*           sp;
-	std::vector<PIXEL_YC> bg;
-	int                   s, e;
-	int                   max_w;
-	int                   x, y, w, h, t;
-	void**                data;
-	int                   mark;
-	FILE*                 list;
-	int                   ret;
+    FILTER*               fp;
+    void*                 editp;
+    SCAN_PIXEL*           sp;
+    std::vector<PIXEL_YC> bg;
+    int                   s, e;
+    int                   max_w;
+    int                   x, y, w, h, t;
+    void**                data;
+    int                   mark;
+    FILE*                 list;
+    int                   ret;
 };
 
 #endif

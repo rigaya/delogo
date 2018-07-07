@@ -1,10 +1,10 @@
 ﻿/*====================================================================
 * 	経過表示・中断ダイアログ
-* 
+*
 * 2003
 * 	06/22:	中断できるようにしよう！ついでに経過表示もこっちで。
 * 	07/02:	ようやく完成
-* 
+*
 *===================================================================*/
 #include <windows.h>
 #include <commctrl.h>
@@ -70,14 +70,14 @@ BOOL CALLBACK AbortDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 
 			//----------------------------------------------- ロゴ解析
 			SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETRANGE, 0, MAKELPARAM(0, p->e - p->s + 1));
-			
+
 			// (幅+高さ+2)*2
 			const int tmp_buf_count = ((p->w + p->h + 2) * 2);
 			short *tmp[3];
 			tmp[0] = (short *)malloc(sizeof(tmp[0][0]) * tmp_buf_count * 3);
 			tmp[1] = tmp[0] + tmp_buf_count;
 			tmp[2] = tmp[1] + tmp_buf_count;
-			
+
 			while (examine <= p->e - p->s && !abort) {
 				// pump windows message
 				MSG message;
@@ -158,7 +158,7 @@ int CreateLogoData(AbortDlgParam* p, HWND hdlg) {
 	lgh.y = (short)p->y;//fp->track[tLOGOY];
 	lgh.w = (short)p->w;//fp->track[tLOGOW];
 	lgh.h = (short)p->h;//fp->track[tLOGOH];
-	
+
 	const int bg_length = p->bg.size();
 	short* lst_bgy  = (short *)malloc(sizeof(short) * bg_length);
 	short* lst_bgcb = (short *)malloc(sizeof(short) * bg_length);
@@ -175,7 +175,7 @@ int CreateLogoData(AbortDlgParam* p, HWND hdlg) {
 	LOGO_PIXEL* lgp = (LOGO_PIXEL*) ((LOGO_HEADER*)*p->data+1);
 
 	SendDlgItemMessage(hdlg, IDC_PROGRESS, PBM_SETRANGE, 0, MAKELPARAM(0, lgh.w * lgh.h - 1));
-	
+
 	for (int i = 0; i < bg_length; i++) {
 		lst_bgy[i]  = p->bg[i].y;
 		lst_bgcb[i] = p->bg[i].cb;

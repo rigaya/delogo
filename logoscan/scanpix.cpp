@@ -1,14 +1,14 @@
 ﻿/*********************************************************************
 * 	構造体 SCAN_PIXEL
 * 	各ピクセルのロゴ色・不透明度解析用
-* 
+*
 * 2003
 * 	05/10:	operator new[](size_t, T* p) を使いすぎると落ちる。
 * 			ScanPixel::Allocを最初に使うことで回避できる。
 * 	06/16:	やっぱりnewやめて素直にrealloc使うことにした。
 * 	06/17:	昨日の修正で入れてしまったバグを修正
 * 			エラーメッセージを追加（サンプルが無い状態で
-* 
+*
 *********************************************************************/
 #include <windows.h>
 #include "filter.h"
@@ -162,14 +162,14 @@ int GetLGP(LOGO_PIXEL& lgp, const SCAN_PIXEL *sp, const short *lst_bgy, const sh
 	short* lst_y  = (short*)malloc(n * sizeof(short));
 	short* lst_cb = (short*)malloc(n * sizeof(short));
 	short* lst_cr = (short*)malloc(n * sizeof(short));
-	
+
 	const unsigned long tmp_size = (SCAN_BUFFER_SIZE + 10) * sizeof(sp->buffer[0]);
 	unsigned char *ptr_tmp = (unsigned char *)malloc(tmp_size);
 	if (ptr_tmp == nullptr || lst_y == nullptr || lst_cb == nullptr || lst_cr == nullptr) {
 		ShowErrorMessage(ERROR_MALLOC);
 		return ret;
 	}
-	
+
 	int i = 0;
 	for (int k = 0; k < sp->compressed_data_idx; k++) {
 		char *ptr_compressed_data = sp->compressed_datas[k];
@@ -187,7 +187,7 @@ int GetLGP(LOGO_PIXEL& lgp, const SCAN_PIXEL *sp, const short *lst_bgy, const sh
 		}
 	}
 	free(ptr_tmp);
-	
+
 	for (int j = 0; j < sp->buffer_idx; i++, j++) {
 		lst_y[i]  = sp->buffer[j].y;
 		lst_cb[i] = sp->buffer[j].cb;

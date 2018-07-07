@@ -1,6 +1,8 @@
 ﻿/*====================================================================
 * 	編集ダイアログ			editdlg.c
 *===================================================================*/
+#define NOMINMAX
+#define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include "resource.h"
 #include "strdlg.h"
@@ -17,28 +19,28 @@ static BOOL CopyTextToClipboard(HWND hwnd, const char* text);
 *===================================================================*/
 BOOL CALLBACK StrDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 {
-	static char str[STRDLG_MAXSTR] = { 0 };
+    char str[STRDLG_MAXSTR] = { 0 };
 
-	switch (msg) {
-		case WM_INITDIALOG:
-			SetDlgItemText(hdlg, ID_SHOW_STRING, (const char*)lParam);
-			lstrcpy(str, (const char*)lParam);
-			return TRUE;
+    switch (msg) {
+        case WM_INITDIALOG:
+            SetDlgItemText(hdlg, ID_SHOW_STRING, (const char*)lParam);
+            lstrcpy(str, (const char*)lParam);
+            return TRUE;
 
-		case WM_COMMAND:
-			switch (LOWORD(wParam)) {
-				case IDOK:
-				case IDCANCEL:
-					EndDialog(hdlg, LOWORD(wParam));
-					return TRUE;
+        case WM_COMMAND:
+            switch (LOWORD(wParam)) {
+                case IDOK:
+                case IDCANCEL:
+                    EndDialog(hdlg, LOWORD(wParam));
+                    return TRUE;
 
-				case ID_COPY_STRING:
-					 CopyTextToClipboard(hdlg, str);
-			}
-			break;
-	}
+                case ID_COPY_STRING:
+                     CopyTextToClipboard(hdlg, str);
+            }
+            break;
+    }
 
-	return FALSE;
+    return FALSE;
 }
 
 /*--------------------------------------------------------------------
@@ -46,29 +48,29 @@ BOOL CALLBACK StrDlgProc(HWND hdlg, UINT msg, WPARAM wParam, LPARAM lParam)
 *-------------------------------------------------------------------*/
 static BOOL CopyTextToClipboard(HWND hwnd, const char* text)
 {
-	if (!OpenClipboard(hwnd)) return FALSE;
+    if (!OpenClipboard(hwnd)) return FALSE;
 
-	HGLOBAL hglbCopy = GlobalAlloc(GMEM_MOVEABLE, lstrlen(text)+1);
-	if (hglbCopy == NULL) {
-		CloseClipboard();
-		return FALSE;
-	}
+    HGLOBAL hglbCopy = GlobalAlloc(GMEM_MOVEABLE, lstrlen(text)+1);
+    if (hglbCopy == NULL) {
+        CloseClipboard();
+        return FALSE;
+    }
 
-	char *ptrCopy = (char*)GlobalLock(hglbCopy);
-	lstrcpy(ptrCopy, text);
-	GlobalUnlock(hglbCopy);
+    char *ptrCopy = (char*)GlobalLock(hglbCopy);
+    lstrcpy(ptrCopy, text);
+    GlobalUnlock(hglbCopy);
 
-	if (!EmptyClipboard()) {
-		GlobalFree(hglbCopy);
-		CloseClipboard();
-		return FALSE;
-	}
-	if (SetClipboardData(CF_TEXT, hglbCopy) == NULL) {
-		GlobalFree(hglbCopy);
-		CloseClipboard();
-		return FALSE;
-	}
-	CloseClipboard();
+    if (!EmptyClipboard()) {
+        GlobalFree(hglbCopy);
+        CloseClipboard();
+        return FALSE;
+    }
+    if (SetClipboardData(CF_TEXT, hglbCopy) == NULL) {
+        GlobalFree(hglbCopy);
+        CloseClipboard();
+        return FALSE;
+    }
+    CloseClipboard();
 
-	return TRUE;
+    return TRUE;
 }
