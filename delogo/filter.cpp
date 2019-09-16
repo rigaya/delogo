@@ -691,7 +691,7 @@ int CalcAutoFade(int *nr_value, int * pFadePreAdjusted /*= nullptr*/,
 
     //-------------------------------------------------------
     // 前後のFrameで取得されていないFade値の計算
-    //fp->exfunc->set_ycp_filtering_cache_size(fp, buffer_width, buffer_valid_height, 3, nullptr);
+    fp->exfunc->set_ycp_filtering_cache_size(fp, fpip->max_w, fpip->max_h, 3, NULL);
     bool bNeedFillFadeArray = false;
     for (int i = 0; i < 7; i++) {
         if (g_logo.fade_array[i].fade == -1 && i != 3) { // Fade値が取得されていないFrameの場合
