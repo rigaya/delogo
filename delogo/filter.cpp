@@ -157,6 +157,9 @@
 *  2016/01/02 (+r13)
 *    いくつかの箇所で128byte以上のロゴの名前だと正常に処理できないのを修正。
 *
+*  2019/09/16 (+r13)
+*    Aviutl110でウィンドウが隠れてしまったりする問題を修正。
+*
 **************************************************************************************************/
 
 #include <windows.h>
@@ -167,6 +170,7 @@
 #include <math.h>
 #include "filter.h"
 #include "logo.h"
+#include "dlg_util.h"
 #include "optdlg.h"
 #include "resource.h"
 #include "send_lgd.h"
@@ -277,7 +281,7 @@ BOOL func_proc_add_logo(FILTER *fp,FILTER_PROC_INFO *fpip,LOGO_HEADER *lgh,int);
 //	FILTER_DLL構造体
 //----------------------------
 char filter_name[] = LOGO_FILTER_NAME;
-static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r12 by rigaya";
+static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r13 by rigaya";
 #define track_N 10
 #if track_N
 static TCHAR *track_name[track_N] = { 	"位置 X", "位置 Y",
@@ -316,20 +320,19 @@ static int    check_default[] = { 0, 1, 0 };	// デフォルト
 #define LOGO_DELMODE 1
 #define LOGO_BASEPROFILE 2
 
-// 設定ウィンドウの高さ
-#define WND_Y (67+24*track_N+20*check_N)
+// 最後の設定項目の位置
+#define ITEM_Y (19+24*track_N+20*check_N)
 
 static FILTER_DLL filter = {
-    FILTER_FLAG_WINDOW_SIZE |	//	フィルタのフラグ
     FILTER_FLAG_EX_DATA |
     FILTER_FLAG_EX_INFORMATION,
-    320,WND_Y,			// 設定ウインドウのサイズ
-    filter_name,    	// フィルタの名前
-#if track_N
-    track_N,        	// トラックバーの数
-    track_name,     	// トラックバーの名前郡
-    track_default,  	// トラックバーの初期値郡
-    track_s,track_e,	// トラックバーの数値の下限上限
+    0,0,          // 設定ウインドウのサイズ
+    filter_name,        // フィルタの名前
+#ifdef track_N
+    track_N,            // トラックバーの数
+    track_name,         // トラックバーの名前郡
+    track_default,      // トラックバーの初期値郡
+    track_s,track_e,    // トラックバーの数値の下限上限
 #else
     0,NULL,NULL,NULL,NULL,
 #endif
@@ -497,7 +500,9 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip)
 * 	logo_auto_select_apply()
 *-------------------------------------------------------------------*/
 static void logo_auto_select_apply(FILTER *fp, int num) {
-    SetWindowPos(fp->hwnd, 0, 0, 0, 320, WND_Y + 20, SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+    auto window = GetSize(fp->hwnd, nullptr, nullptr);
+    auto border = GetBorderSize(fp->hwnd, window);
+    SetWindowPos(fp->hwnd, 0, 0, 0, window.w, ITEM_Y + 23 + 24 + window.h - (border.rect.bottom - border.rect.top), SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
     SendMessage(dialog.lb_auto_select, WM_SETTEXT, 0, ((num == LOGO_AUTO_SELECT_NONE) ? (LPARAM)"なし" : (LPARAM)logodata[num]));
 }
 
@@ -508,8 +513,10 @@ static void logo_auto_select_remove(FILTER *fp) {
     char buf[LOGO_MAX_NAME] = { 0 };
     GetWindowText(dialog.lb_auto_select, buf, _countof(buf));
     if (strlen(buf)) {
+        auto window = GetSize(fp->hwnd, nullptr, nullptr);
+        auto border = GetBorderSize(fp->hwnd, window);
+        SetWindowPos(fp->hwnd, 0, 0, 0, window.w, ITEM_Y + 23 + 0 + window.h - (border.rect.bottom - border.rect.top), SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
         SendMessage(dialog.lb_auto_select, WM_SETTEXT, 0, (LPARAM)"");
-        SetWindowPos(fp->hwnd, 0, 0, 0, 320, WND_Y, SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
         fp->track[LOGO_STRT] = 0;
         fp->track[LOGO_FIN]  = 0;
         fp->track[LOGO_FOUT] = 0;
@@ -897,7 +904,6 @@ static void on_wm_filter_file_close(FILTER* fp) {
 *-------------------------------------------------------------------*/
 static void init_dialog(HWND hwnd, HINSTANCE hinst)
 {
-#define ITEM_Y (19+24*track_N+20*check_N)
 
     // フォント作成
     dialog.font = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
@@ -923,6 +929,9 @@ static void init_dialog(HWND hwnd, HINSTANCE hinst)
                                     20,ITEM_Y+23, 288,24, hwnd, (HMENU)ID_LABEL_LOGO_AUTO_SELECT, hinst, NULL);
     SendMessage(dialog.lb_auto_select, WM_SETFONT, (WPARAM)dialog.font, 0);
 #endif
+    auto window = GetSize(hwnd, nullptr, nullptr);
+    auto border = GetBorderSize(hwnd, window);
+    SetWindowPos(hwnd, 0, 0, 0, window.w, ITEM_Y + 23 + window.h - (border.rect.bottom - border.rect.top), SWP_NOMOVE | SWP_NOZORDER);
 }
 
 /*--------------------------------------------------------------------
