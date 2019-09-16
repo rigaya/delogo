@@ -228,12 +228,12 @@ static __forceinline BOOL func_proc_eraze_logo_simd(FILTER *fp, FILTER_PROC_INFO
             y5 = _mm256_set_m128i(_mm_loadu_si128((__m128i *)(ptr_lgp + 176)), _mm_loadu_si128((__m128i *)(ptr_lgp + 80)));
 
             // 不透明度情報のみ取り出し
-            yDp0 = _mm256_and_si256(y0, _mm256_load_si256((__m256i *)MASK_16BIT));
-            yDp1 = _mm256_and_si256(y1, _mm256_load_si256((__m256i *)MASK_16BIT));
-            yDp2 = _mm256_and_si256(y2, _mm256_load_si256((__m256i *)MASK_16BIT));
-            yDp3 = _mm256_and_si256(y3, _mm256_load_si256((__m256i *)MASK_16BIT));
-            yDp4 = _mm256_and_si256(y4, _mm256_load_si256((__m256i *)MASK_16BIT));
-            yDp5 = _mm256_and_si256(y5, _mm256_load_si256((__m256i *)MASK_16BIT));
+            yDp0 = _mm256_max_epi16(_mm256_and_si256(y0, _mm256_load_si256((__m256i *)MASK_16BIT)), _mm256_setzero_si256());
+            yDp1 = _mm256_max_epi16(_mm256_and_si256(y1, _mm256_load_si256((__m256i *)MASK_16BIT)), _mm256_setzero_si256());
+            yDp2 = _mm256_max_epi16(_mm256_and_si256(y2, _mm256_load_si256((__m256i *)MASK_16BIT)), _mm256_setzero_si256());
+            yDp3 = _mm256_max_epi16(_mm256_and_si256(y3, _mm256_load_si256((__m256i *)MASK_16BIT)), _mm256_setzero_si256());
+            yDp4 = _mm256_max_epi16(_mm256_and_si256(y4, _mm256_load_si256((__m256i *)MASK_16BIT)), _mm256_setzero_si256());
+            yDp5 = _mm256_max_epi16(_mm256_and_si256(y5, _mm256_load_si256((__m256i *)MASK_16BIT)), _mm256_setzero_si256());
 
             //16bit→32bit
             yDp0 = _mm256_sub_epi32(_mm256_add_epi16(yDp0, _mm256_load_si256((__m256i *)ARRAY_0x8000[1])), _mm256_load_si256((__m256i *)ARRAY_0x8000[1]));
@@ -327,12 +327,12 @@ static __forceinline BOOL func_proc_eraze_logo_simd(FILTER *fp, FILTER_PROC_INFO
             x5 = _mm_loadu_si128((__m128i *)(ptr_lgp + 80));
 
             // 不透明度情報のみ取り出し
-            xDp0 = _mm_and_si128(x0, _mm_load_si128((__m128i *)MASK_16BIT));
-            xDp1 = _mm_and_si128(x1, _mm_load_si128((__m128i *)MASK_16BIT));
-            xDp2 = _mm_and_si128(x2, _mm_load_si128((__m128i *)MASK_16BIT));
-            xDp3 = _mm_and_si128(x3, _mm_load_si128((__m128i *)MASK_16BIT));
-            xDp4 = _mm_and_si128(x4, _mm_load_si128((__m128i *)MASK_16BIT));
-            xDp5 = _mm_and_si128(x5, _mm_load_si128((__m128i *)MASK_16BIT));
+            xDp0 = _mm_max_epi16(_mm_and_si128(x0, _mm_load_si128((__m128i *)MASK_16BIT)), _mm_setzero_si128());
+            xDp1 = _mm_max_epi16(_mm_and_si128(x1, _mm_load_si128((__m128i *)MASK_16BIT)), _mm_setzero_si128());
+            xDp2 = _mm_max_epi16(_mm_and_si128(x2, _mm_load_si128((__m128i *)MASK_16BIT)), _mm_setzero_si128());
+            xDp3 = _mm_max_epi16(_mm_and_si128(x3, _mm_load_si128((__m128i *)MASK_16BIT)), _mm_setzero_si128());
+            xDp4 = _mm_max_epi16(_mm_and_si128(x4, _mm_load_si128((__m128i *)MASK_16BIT)), _mm_setzero_si128());
+            xDp5 = _mm_max_epi16(_mm_and_si128(x5, _mm_load_si128((__m128i *)MASK_16BIT)), _mm_setzero_si128());
 
             //16bit→32bit
             xDp0 = _mm_sub_epi32(_mm_add_epi16(xDp0, _mm_load_si128((__m128i *)ARRAY_0x8000[1])), _mm_load_si128((__m128i *)ARRAY_0x8000[1]));
