@@ -1393,7 +1393,7 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
         } else
             sprintf_s(newCaption, 255, "透過性ロゴ[自動除去]");
     } else {
-        fade = (fp->check[LOGO_CHECK_AUTO_FADE]) ? calc_fade(fp, fpip) : 0;
+        fade = calc_fade(fp, fpip);
 
 #if defined(_h39_AUTONR_)   /* (2016/02/14:+h39) 自動NRを自動Fadeから独立させて単独で使用できるように変更 */
         if (fp->check[LOGO_CHECK_AUTO_NR] && fp->check[LOGO_CHECK_DELMODE]) {
