@@ -89,6 +89,7 @@
 #include "logo.h"
 #include "scanpix.h"
 #include "resultdlg.h"
+#include "dlg_util.h"
 #include "abort.h"
 #include "logoscan.h"
 
@@ -331,13 +332,18 @@ BOOL func_WndProc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam, void *e
 *-------------------------------------------------------------------*/
 inline void create_dlgitem(HWND hwnd, HINSTANCE hinst)
 {
-#define ITEM_Y (14+24*track_N+20*check_N)
+    auto window = GetSize(hwnd, nullptr, nullptr);
+    auto border = GetBorderSize(hwnd, window);
+#define ITEM_Y (14 +24*track_N+20*check_N)
     HFONT font = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
 
     // ロゴ解析ボタン
+    const int button_h = 18;
     scanbtn = CreateWindow("BUTTON", "ロゴ解析", WS_CHILD|WS_VISIBLE|WS_TABSTOP|BS_PUSHBUTTON|BS_VCENTER,
-                                    10,ITEM_Y, 295,18, hwnd, (HMENU)ID_SCANBTN, hinst, NULL);
+                                    0,ITEM_Y, border.rect.right-border.rect.left, button_h, hwnd, (HMENU)ID_SCANBTN, hinst, NULL);
     SendMessage(scanbtn, WM_SETFONT, (WPARAM)font, 0);
+
+    SetWindowPos(hwnd, 0, 0, 0, window.w, ITEM_Y + button_h + window.h - (border.rect.bottom - border.rect.top), SWP_NOMOVE | SWP_NOZORDER);
 }
 
 /*--------------------------------------------------------------------
