@@ -14,12 +14,12 @@
 #define SCAN_BUFFER_SIZE 1024
 
 typedef struct {
-	char** compressed_datas;
-	int    compressed_data_n;
-	int    compressed_data_idx;
+    char** compressed_datas;
+    int    compressed_data_n;
+    int    compressed_data_idx;
 
-	PIXEL_YC *buffer;
-	int buffer_idx;
+    PIXEL_YC *buffer;
+    int buffer_idx;
 } SCAN_PIXEL;
 
 

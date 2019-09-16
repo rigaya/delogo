@@ -9,5 +9,5 @@
 #include "delogo_proc.h"
 
 BOOL __stdcall func_proc_eraze_logo_sse41(FILTER *fp, FILTER_PROC_INFO *fpip, LOGO_HEADER *lgh, int fade) {
-	return func_proc_eraze_logo_simd(fp, fpip, lgh, fade);
+    return func_proc_eraze_logo_simd(fp, fpip, lgh, fade);
 }
