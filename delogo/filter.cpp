@@ -171,6 +171,7 @@
 #include <memory>
 #include "filter.h"
 #include "logo.h"
+#include "dlg_util.h"
 #include "optdlg.h"
 #include "resource.h"
 #include "send_lgd.h"
@@ -384,14 +385,13 @@ static int    check_default[check_N] = { 0, 1, 0, 0, 0, 0 };  // デフォルト
 static unsigned int result_list[LOGO_NR_MAX+1][512];
 static unsigned int debug_ave_result;   // MaskのPixelあたりの平均Prewitt値.
 
-// 設定ウィンドウの高さ
-#define WND_Y (67+24*track_N+20*check_N)
+// 最後の設定項目の位置
+#define ITEM_Y (19+24*track_N+20*check_N)
 
 static FILTER_DLL filter = {
-    FILTER_FLAG_WINDOW_SIZE |   //  フィルタのフラグ
     FILTER_FLAG_EX_DATA |
     FILTER_FLAG_EX_INFORMATION,
-    320,WND_Y,          // 設定ウインドウのサイズ
+    0,0,          // 設定ウインドウのサイズ
     filter_name,        // フィルタの名前
 #ifdef track_N
     track_N,            // トラックバーの数
@@ -1484,7 +1484,9 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
 *   logo_auto_select_apply()
 *-------------------------------------------------------------------*/
 static void logo_auto_select_apply(FILTER *fp, int num) {
-    SetWindowPos(fp->hwnd, 0, 0, 0, 320, WND_Y + 20, SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
+    auto window = GetSize(fp->hwnd, nullptr, nullptr);
+    auto border = GetBorderSize(fp->hwnd, window);
+    SetWindowPos(fp->hwnd, 0, 0, 0, window.w, ITEM_Y + 23 + 24 + window.h - (border.rect.bottom - border.rect.top), SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
     SendMessage(dialog.lb_auto_select, WM_SETTEXT, 0, ((num == LOGO_AUTO_SELECT_NONE) ? (LPARAM)"なし" : (LPARAM)logodata[num]));
 }
 
@@ -1495,8 +1497,10 @@ static void logo_auto_select_remove(FILTER *fp) {
     char buf[LOGO_MAX_NAME] = { 0 };
     GetWindowText(dialog.lb_auto_select, buf, _countof(buf));
     if (strlen(buf)) {
+        auto window = GetSize(fp->hwnd, nullptr, nullptr);
+        auto border = GetBorderSize(fp->hwnd, window);
+        SetWindowPos(fp->hwnd, 0, 0, 0, window.w, ITEM_Y + 23 + 0 + window.h - (border.rect.bottom - border.rect.top), SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
         SendMessage(dialog.lb_auto_select, WM_SETTEXT, 0, (LPARAM)"");
-        SetWindowPos(fp->hwnd, 0, 0, 0, 320, WND_Y, SWP_NOMOVE | SWP_NOACTIVATE | SWP_NOOWNERZORDER);
         fp->track[LOGO_TRACK_START] = 0;
         fp->track[LOGO_TRACK_FADE_IN]  = 0;
         fp->track[LOGO_TRACK_FADE_OUT] = 0;
@@ -2067,7 +2071,7 @@ void create_adjusted_logo_mask(short *mask_adjusted, const short *mask_nr, const
         }
     }
 //      int aveResult = results[min_fade_index] / logo_mask_valid_pixels;
-    int aveResult = (g_logo.mask_valid_pixels > 0)? results[min_fade_index] / g_logo.mask_valid_pixels: 0;  // (2015/03/03:+h24)
+    int aveResult = (g_logo.mask_valid_pixels > 0) ? results[min_fade_index] / g_logo.mask_valid_pixels: 0;  // (2015/03/03:+h24)
 
     //--------------------------------------------------------------------------
     long prewitt_threshold = whole_min_result * 2 + 100;        // 基準値.
@@ -2712,7 +2716,6 @@ static void on_wm_filter_file_close(FILTER* fp) {
 *-------------------------------------------------------------------*/
 static void init_dialog(HWND hwnd, HINSTANCE hinst)
 {
-#define ITEM_Y (19+24*track_N+20*check_N)
 
     // フォント作成
     dialog.font = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
@@ -2738,6 +2741,9 @@ static void init_dialog(HWND hwnd, HINSTANCE hinst)
                                     20,ITEM_Y+23, 288,24, hwnd, (HMENU)ID_LABEL_LOGO_AUTO_SELECT, hinst, nullptr);
     SendMessage(dialog.lb_auto_select, WM_SETFONT, (WPARAM)dialog.font, 0);
 #endif
+    auto window = GetSize(hwnd, nullptr, nullptr);
+    auto border = GetBorderSize(hwnd, window);
+    SetWindowPos(hwnd, 0, 0, 0, window.w, ITEM_Y + 23 + window.h - (border.rect.bottom - border.rect.top), SWP_NOMOVE | SWP_NOZORDER);
 }
 
 /*--------------------------------------------------------------------
