@@ -43,8 +43,10 @@ static ITEM_SIZE GetBorderSize(HWND hdlg, const ITEM_SIZE& defualtWindow) {
     border.rect.top = point.y - defualtWindow.rect.top;
     border.rect.left = point.x - defualtWindow.rect.left;
 
-    border.rect.bottom = defualtWindow.rect.bottom - defualtWindow.rect.top - border.rect.top;
-    border.rect.right = defualtWindow.rect.right - defualtWindow.rect.left - border.rect.left;
+    border.rect.bottom = border.rect.top + rc.bottom;
+    border.rect.right = border.rect.left + rc.right;
+    border.w = rc.bottom;
+    border.h = rc.right;
     return border;
 }
 
