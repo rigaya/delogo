@@ -767,7 +767,7 @@ int CalcAutoFade(int *nr_value, int * pFadePreAdjusted /*= nullptr*/,
     int future_frame_fade = (g_logo.fade_array[4].fade + g_logo.fade_array[5].fade + g_logo.fade_array[6].fade) / 3;
     int current_frame_fade = (g_logo.fade_array[2].fade + g_logo.fade_array[3].fade + g_logo.fade_array[4].fade) / 3;
 
-    const int adjustCoef = 7;                 // 0～10の補正係数
+    const int adjustCoef = 7; // 0～10の補正係数 (HayatePP氏版のデフォルトで固定とする)
     const int fade_shreshold = LOGO_FADE_MAX * 85 / 100;    // 調整を施す閾値.
     const int fade_min_limit = LOGO_FADE_MAX / 10;          //      V
     if (adjustCoef > 0) {   // (2015/10/19:+h38) 補正係数=0の場合は補正しない
@@ -956,8 +956,8 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
 #endif
 
     {
-        unsigned int new_adjdata_size = sizeof(LOGO_HEADER)
-            + (logodata[logo_idx]->h + 1) * (logodata[logo_idx]->w + 1) * sizeof(LOGO_PIXEL);
+        const int new_adjdata_size = (int)(sizeof(LOGO_HEADER)
+            + (logodata[logo_idx]->h + 1) * (logodata[logo_idx]->w + 1) * sizeof(LOGO_PIXEL));
         if (new_adjdata_size > adjdata_size) {
             adjdata.reset((LOGO_HEADER *)_aligned_malloc(new_adjdata_size, 16));
             adjdata_size = new_adjdata_size;
@@ -1012,7 +1012,7 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
             g_logo.fade_array_index = -1;
 #if defined(LOGO_FADE_FAST_ANALYZE) /* (2015/03/15:+h31) 関数化 */
             g_logo.mask_logo_index = logo_idx;
-            BOOL brc = CreateLogoMask();    // LogoMaskの作成
+            CreateLogoMask();    // LogoMaskの作成
             bUpdateBuffer = true;
 #else   /* LOGO_FADE_FAST_ANALYZE */
             //---------------------------------------------------------------------------------
@@ -1452,7 +1452,6 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
 
         /* Logo部 NR処理 */
         if (rc && nr_value > 0) {
-            const int logo_pitch = PITCH(logo4work->w);
             /* NRも調整Maskを適用対象とする */
             if (!bNeedCalcThisFrame) {
                 extractLogoY(g_logo.logo_y.get(), PITCH(logo4work->w), fpip->ycp_edit, fpip->max_w, logo4work->x, logo4work->y, logo4work->w, logo4work->h);
@@ -1478,7 +1477,6 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
 
     // Debug情報の表示
     if (bEditing && fp->check[LOGO_CHECK_AUTO_FADE] && fp->check[LOGO_CHECK_DEBUG]) {
-        const int logo_pitch = PITCH(logo4work->w);
         func_debug_adjusted_mask(fp, fpip, logo4work, g_logo.mask_adjusted.get(), g_logo.mask.get());
         func_debug_evaluate_value(fp, fpip, (fp->check[LOGO_CHECK_AUTO_NR]) ? LOGO_NR_MAX+1 : 1, fade);
     }
@@ -1655,7 +1653,7 @@ BOOL func_proc_add_logo(FILTER *const fp, FILTER_PROC_INFO *const fpip, const LO
 *-------------------------------------------------------------------*/
 static int find_logo(const char *logo_name)
 {
-    for (unsigned int i = 0; i < logodata_n; ++i) {
+    for (int i = 0; i < logodata_n; ++i) {
         if (0 == lstrcmp((char *)logodata[i], logo_name))
             return i;
     }
@@ -1853,7 +1851,7 @@ static void create_adjusted_mask(short *const dst, const short *const mask, cons
     short avg_prewitt_of_area_min_pos = get_min_avg_prewitt_value_of_area(dst, width, pitch, height);
 
     //しきい値を適当に定める
-    short prewitt_threshold = std::min(MAXSHORT, 100 + avg_prewitt_of_area_min_pos * 2);
+    short prewitt_threshold = (short)std::min(MAXSHORT, 100 + avg_prewitt_of_area_min_pos * 2);
 
     //しきい値によっては、輪郭部の評価点が極めて少なくなることがある
     //あまりに少ない場合には、しきい値を緩めて(大きくして)、再調整する
@@ -2025,12 +2023,12 @@ void create_adjusted_logo_mask(short *mask_adjusted, const short *mask_nr, const
             memset(&min_fade_index_buf[mask_pos], 0, sizeof(min_fade_index_buf[0]) * 2); //maskの周辺部は0で埋める
             mask_pos += 2;  // x = 2から開始する.
             for (int x = 2; x < lgh->w - 2; x++) {
-                int val = -1;   // (2015/01/14:t14) 各構成点の評価値.
+                //int val = -1;   // (2015/01/14:t14) 各構成点の評価値.
                 if (mask[mask_pos] > 1024) { // Mask値が1024を超える領域(=Logoの輪郭部)のみを評価する.
                     // 評価値の最大/最小値を求める
                     int min_fade = -1;
-                    long min_result = 0x7fffffff;
-                    long max_result = -1;
+                    int min_result = 0x7fffffff;
+                    int max_result = -1;
                     for (int i = 0; i <= PRE_DIV_COUNT; i++) {
                         short * target = g_logo.buf_eval[i].get();    // 評価結果格納用
                         if (target[mask_pos] < min_result) {
@@ -2043,8 +2041,8 @@ void create_adjusted_logo_mask(short *mask_adjusted, const short *mask_nr, const
 
                     // 各構成点の評価
                     if (max_result > 0 && (min_result * 100 / max_result) < 70) {
-                        each_fade_count[min_fade] ++;
-                        min_fade_index_buf[mask_pos] = min_fade;
+                        each_fade_count[min_fade]++;
+                        min_fade_index_buf[mask_pos] = (short)min_fade;
                         if (whole_min_result > min_result)
                             whole_min_result = min_result;
                         valid_mask_count++;
@@ -2091,9 +2089,9 @@ void create_adjusted_logo_mask(short *mask_adjusted, const short *mask_nr, const
         for (int y = 2; y < lgh->h - 2; y++) {
             mask_pos += 2;  // x = 2から開始する.
             for (int x = 2; x < lgh->w - 2; x++) {
-                int min_fade_index = min_fade_index_buf[mask_pos];
-                if (min_fade_index >= 0 && min_fade_index <= 1024) {
-                    short *target = g_logo.buf_eval[min_fade_index].get();    // 評価結果格納用
+                const int min_fade_index_of_mask = min_fade_index_buf[mask_pos];
+                if (min_fade_index_of_mask >= 0 && min_fade_index_of_mask <= 1024) {
+                    short *target = g_logo.buf_eval[min_fade_index_of_mask].get();    // 評価結果格納用
                     if (target[mask_pos] < prewitt_threshold) {
                         mask_count++;
                         mask_adjusted[mask_pos] = 1025;  // 調整後のMaskとして採用.
@@ -2119,10 +2117,9 @@ int calc_auto_fade(int *auto_nr, // 計算された自動NR値を返す.
     FILTER *const fp, const LOGO_HEADER *const lgh, bool bEnableDebug) {
     /* 深度の15%増し相当の結果まで導くように改良 */
     const int fadeMax = calc_fade_max(fp);
-    int fade = fadeMax;
-    unsigned int result;
+    //int fade = fadeMax;
     unsigned int auto_result = 0xffffffff; //unsigned int にして一回で大小比較できるようにする
-    int auto_index = -1;
+    //int auto_index = -1;
     int auto_fade = -1;
 
     const int logo_pitch = PITCH(lgh->w);
@@ -2135,10 +2132,10 @@ int calc_auto_fade(int *auto_nr, // 計算された自動NR値を返す.
     if (fp->check[LOGO_CHECK_AUTO_NR]) {
         /* fade値が最大となるNR値を採用する */
         unsigned int temp_result = 0xffffffff;
-        unsigned int limitResult = 0;
+        //unsigned int limitResult = 0;
         int nh_limit = LOGO_NR_MAX;
         for (int nh = 0; nh <= LOGO_NR_MAX; nh ++) { // NRのLimitに達しても処理を継続してFade値の決定には上限を超えたNRも指定する.
-            int temp_fade = calc_auto_fade4(temp_result, fp, lgh, g_logo.mask_adjusted.get(), nh, fp->track[LOGO_TRACK_NR_AREA], fadeMax);
+            const int temp_fade = calc_auto_fade4(temp_result, fp, lgh, g_logo.mask_adjusted.get(), nh, fp->track[LOGO_TRACK_NR_AREA], fadeMax);
             if (temp_fade > auto_fade) {
                 auto_fade = temp_fade;
                 *auto_nr = nh;
@@ -2171,7 +2168,7 @@ int calc_auto_fade(int *auto_nr, // 計算された自動NR値を返す.
                 unsigned int temp_result = 0xffffffff;
                 int temp_fade = -1;
                 for (int i_fade = 0; i_fade <= fadeMax; i_fade++) {
-                    result = calc_auto_fade_coef2(nullptr,
+                    unsigned int result = calc_auto_fade_coef2(nullptr,
                         g_logo.logo_y_delogo_nr.get(), g_logo.logo_y_delogo.get(), g_logo.logo_y.get(),
                         fp, lgh, g_logo.mask_nr.get(), g_logo.mask_adjusted.get(),
                         i_fade, nh, fp->track[LOGO_TRACK_NR_AREA], 0xffffffff);
@@ -2193,7 +2190,7 @@ int calc_auto_fade(int *auto_nr, // 計算された自動NR値を返す.
             }
         } else {
             for (int i_fade = 0; i_fade <= fadeMax; i_fade++) {
-                result = calc_auto_fade_coef2(nullptr,
+                unsigned int result = calc_auto_fade_coef2(nullptr,
                     g_logo.logo_y_delogo_nr.get(), g_logo.logo_y_delogo.get(), g_logo.logo_y.get(),
                     fp, lgh, g_logo.mask_nr.get(), g_logo.mask_adjusted.get(),
                     i_fade, fp->track[LOGO_TRACK_NR_VALUE], fp->track[LOGO_TRACK_NR_AREA], 0xffffffff);
@@ -2366,13 +2363,10 @@ BOOL func_logo_NR1(short *mask_nr_adjusted, const short *mask_adjusted, int nr_v
 #endif  /* (2016/02/20:+h40) */
     }
 
-    // LOGO_PIXELデータへのポインタ
-    LOGO_PIXEL *lgp = (LOGO_PIXEL *)(lgh + 1);
 
     // 左上の位置へ移動
     PIXEL_YC *ptr = fpip->ycp_edit;
     ptr += lgh->x + lgh->y * fpip->max_w;
-    int pos = 0;
 
     //-------------------------------------
     // ぼかし処理.
@@ -2380,6 +2374,9 @@ BOOL func_logo_NR1(short *mask_nr_adjusted, const short *mask_adjusted, int nr_v
 #if defined(__LOGO_AUTO_ERASE_SIMD__)
     func_logo->smooth_yc48[nr_value-1](ptr, mask_nr_adjusted, lgh->w, fpip->max_w, lgh->h);
 #else   /* __LOGO_AUTO_ERASE_SIMD__ */
+    // LOGO_PIXELデータへのポインタ
+    LOGO_PIXEL *lgp = (LOGO_PIXEL *)(lgh + 1);
+    int pos = 0;
     for (int i = 0; i < lgh->h; ++i) {
         for (int j = 0; j < lgh->w; ++j) {
             if (ptr >= fpip->ycp_edit                           // 画面内の時のみ処理
@@ -2444,8 +2441,8 @@ BOOL func_logo_NR1(short *mask_nr_adjusted, const short *mask_adjusted, int nr_v
 // 調整後のMaskの可視表示.
 //-------------------------------------
 BOOL func_debug_adjusted_mask(FILTER *const fp, FILTER_PROC_INFO *const fpip, const LOGO_HEADER *lgh, const short *mask_adjusted, const short *mask) {
+    UNREFERENCED_PARAMETER(fp);
     const int logo_pitch = PITCH(lgh->w);
-    const short * adjustedMask = mask + (logo_pitch * lgh->h);
     PIXEL_YC * ptr = fpip->ycp_edit;
     ptr += lgh->x + lgh->y * fpip->max_w;
     int pos = 0;
@@ -2625,8 +2622,9 @@ static void on_wm_filter_init(FILTER* fp)
 {
     init_dialog(fp->hwnd, fp->dll_hinst);
     // コンボアイテムセット
-    for (unsigned int i = 0; i < logodata_n; i++)
+    for (int i = 0; i < logodata_n; i++) {
         set_combo_item(logodata[i]);
+    }
 
     // ロゴデータ受信メッセージ登録
     WM_SEND_LOGO_DATA = RegisterWindowMessage(wm_send_logo_data);
@@ -2757,7 +2755,7 @@ static void init_dialog(HWND hwnd, HINSTANCE hinst)
 *-------------------------------------------------------------------*/
 #pragma warning (push)
 #pragma warning (disable: 4244) //C4244: '=' : 'int' から 'short' への変換です。データが失われる可能性があります。
-static BOOL create_adj_exdata(FILTER *fp, LOGO_HEADER *adjdata, const LOGO_HEADER *data)
+static BOOL create_adj_exdata(FILTER *fp, LOGO_HEADER *adj_logodata, const LOGO_HEADER *data)
 {
     int i, j;
 
@@ -2765,20 +2763,20 @@ static BOOL create_adj_exdata(FILTER *fp, LOGO_HEADER *adjdata, const LOGO_HEADE
         return FALSE;
 
     // ロゴ名コピー
-    memcpy(adjdata->name, data->name, LOGO_MAX_NAME);
+    memcpy(adj_logodata->name, data->name, LOGO_MAX_NAME);
 
     // 左上座標設定（位置調整後）
-    adjdata->x = data->x + (int)(fp->track[LOGO_TRACK_X]-LOGO_XY_MIN)/4 + LOGO_XY_MIN/4;
-    adjdata->y = data->y + (int)(fp->track[LOGO_TRACK_Y]-LOGO_XY_MIN)/4 + LOGO_XY_MIN/4;
+    adj_logodata->x = data->x + (int)(fp->track[LOGO_TRACK_X]-LOGO_XY_MIN)/4 + LOGO_XY_MIN/4;
+    adj_logodata->y = data->y + (int)(fp->track[LOGO_TRACK_Y]-LOGO_XY_MIN)/4 + LOGO_XY_MIN/4;
 
     const int w = data->w + 1; // 1/4単位調整するため
     const int h = data->h + 1; // 幅、高さを１増やす
-    adjdata->w = w;
-    adjdata->h = h;
+    adj_logodata->w = w;
+    adj_logodata->h = h;
 
     // LOGO_PIXELの先頭
     LOGO_PIXEL *df = (LOGO_PIXEL *)(data +1);
-    LOGO_PIXEL *ex = (LOGO_PIXEL *)(adjdata +1);
+    LOGO_PIXEL *ex = (LOGO_PIXEL *)(adj_logodata +1);
 
     const int adjx = (fp->track[LOGO_TRACK_X]-LOGO_XY_MIN) % 4; // 位置端数
     const int adjy = (fp->track[LOGO_TRACK_Y]-LOGO_XY_MIN) % 4;
@@ -3024,7 +3022,7 @@ static void del_combo_item(int num)
     logodata_n = SendMessage(dialog.cb_logo, CB_GETCOUNT, 0, 0);
     logodata = (LOGO_HEADER **)realloc(logodata, logodata_n * sizeof(logodata));
 
-    for (unsigned int i = 0; i < logodata_n; i++)
+    for (int i = 0; i < logodata_n; i++)
         logodata[i] = (LOGO_HEADER *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0);
 
     SendMessage(dialog.cb_logo, CB_DELETESTRING, num, 0);
@@ -3203,7 +3201,7 @@ static BOOL on_option_button(FILTER* fp)
 
         // logodata配列再構成
         logodata = (LOGO_HEADER **)realloc(logodata, logodata_n * sizeof(logodata));
-        for (unsigned int i = LOGO_AUTO_SELECT_USED; i < logodata_n; i++)
+        for (int i = LOGO_AUTO_SELECT_USED; i < logodata_n; i++)
             logodata[i] = (LOGO_HEADER *)SendMessage(dialog.cb_logo, CB_GETITEMDATA, i, 0);
 
         if (logodata_n) // 拡張データ初期値設定

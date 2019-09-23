@@ -1107,7 +1107,7 @@ static __forceinline int get_logo_y(const type *ptr_lgp, int logo_width, int x_o
 }
 
 template<>
-static __forceinline int get_logo_y<LOGO_PIXEL>(const LOGO_PIXEL *ptr_lgp, int logo_width, int x_offset, int y_offset) {
+__forceinline int get_logo_y<LOGO_PIXEL>(const LOGO_PIXEL *ptr_lgp, int logo_width, int x_offset, int y_offset) {
     ptr_lgp += x_offset;
     ptr_lgp += y_offset * logo_width;
     return ptr_lgp->y * ptr_lgp->dp_y / LOGO_FADE_MAX;
