@@ -157,6 +157,12 @@
 *  2016/01/02 (+r13)
 *    いくつかの箇所で128byte以上のロゴの名前だと正常に処理できないのを修正。
 *
+*  2019/09/16 (+r14)
+*    Aviutl110でウィンドウが隠れてしまったりする問題を修正。
+*
+*  2019/09/23 (+r15)
+*    自動フェード/自動NR機能を追加。
+*
 **************************************************************************************************/
 
 #define NOMINMAX
@@ -362,7 +368,7 @@ enum {
 #define check_N (LOGO_CHECK_COUNT)
 
 char filter_name[] = LOGO_FILTER_NAME;
-static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r13 by rigaya";
+static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r15 by rigaya";
 
 static TCHAR *track_name[track_N] = {   "位置 X", "位置 Y",
                                           "深度", "Y", "Cb", "Cr",
