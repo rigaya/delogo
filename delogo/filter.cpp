@@ -163,6 +163,9 @@
 *  2019/09/23 (+r15)
 *    自動フェード/自動NR機能を追加。
 *
+*  2019/10/20 (+r16)
+*    自動フェード/自動NR機能を追加。
+*
 **************************************************************************************************/
 
 #define NOMINMAX
@@ -368,7 +371,7 @@ enum {
 #define check_N (LOGO_CHECK_COUNT)
 
 char filter_name[] = LOGO_FILTER_NAME;
-static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r15 by rigaya";
+static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r16 by rigaya";
 
 static TCHAR *track_name[track_N] = {   "位置 X", "位置 Y",
                                           "深度", "Y", "Cb", "Cr",
@@ -976,7 +979,7 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
             return FALSE;
     } else {
         // 4の倍数のときはx,yのみ書き換え
-        memcpy(adjdata.get(), logodata[logo_idx], adjdata_size);
+        memcpy(adjdata.get(), logodata[logo_idx], logo_data_size(logodata[logo_idx]));
         adjdata->x += (short)(fp->track[LOGO_TRACK_X] / 4);
         adjdata->y += (short)(fp->track[LOGO_TRACK_Y] / 4);
     }
