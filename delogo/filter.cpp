@@ -164,7 +164,10 @@
 *    自動フェード/自動NR機能を追加。
 *
 *  2019/10/20 (+r16)
-*    自動フェード/自動NR機能を追加。
+*    X/Yが4で割り切れる場合に、範囲外例外の生じる可能性があったのを修正。
+*
+*  2019/10/24 (+r17)
+*    "NR範囲", "NR強度"が設定できなくなっていたのを修正。
 *
 **************************************************************************************************/
 
@@ -371,7 +374,7 @@ enum {
 #define check_N (LOGO_CHECK_COUNT)
 
 char filter_name[] = LOGO_FILTER_NAME;
-static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r16 by rigaya";
+static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r17 by rigaya";
 
 static TCHAR *track_name[track_N] = {   "位置 X", "位置 Y",
                                           "深度", "Y", "Cb", "Cr",
@@ -382,10 +385,11 @@ static int   track_default[track_N] = { 0, 0,
                                          0, 0, 0, 0 }; // トラックバーの初期値
 int          track_s[track_N] = { LOGO_XY_MIN, LOGO_XY_MIN,
                                    0, -100, -100, -100,
-                                   LOGO_STED_MIN, 0, 0, LOGO_STED_MIN }; // トラックバーの下限値
+                                   LOGO_STED_MIN, 0, 0, LOGO_STED_MIN, 0, 0 }; // トラックバーの下限値
 int          track_e[track_N] = { LOGO_XY_MAX, LOGO_XY_MAX,
                                    256, 100, 100, 100,
-                                   LOGO_STED_MAX, LOGO_FADE_MAX, LOGO_FADE_MAX, LOGO_STED_MAX }; // トラックバーの上限値
+                                   LOGO_STED_MAX, LOGO_FADE_MAX, LOGO_FADE_MAX, LOGO_STED_MAX,
+                                   LOGO_NR_AREA_MAX, LOGO_NR_MAX }; // トラックバーの上限値
 
 static TCHAR *check_name[check_N]   = { "ロゴ付加モード","ロゴ除去モード","ﾌﾟﾛﾌｧｲﾙ境界をﾌｪｰﾄﾞ基点にする",
                                     "自動Fade" , "自動NR", "デバッグ" }; // チェックボックス
