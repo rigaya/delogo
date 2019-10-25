@@ -4,12 +4,8 @@
 #ifndef ___LOGODEF_H
 #define ___LOGODEF_H
 
-#define LOGO_FADE_FAST_ANALYZE	1
 #define __LOGO_AUTO_ERASE_SIMD__	/* 自動FadeのSIMD化 */
 #define __LOGO_MASK_CREATE_SIMD__	/* (2015/01/15:h14) 新方式の場合のSIMD化 */
-#define __LOGO_AUTO_ERASE_			/* Logoの自動消去Modeを有効にする */
-#define __LOGO_ADD_NR2__			/* Logo部NR処理 */
-#define	_h39_AUTONR_				/* (2016/02/14:+h39) 自動NRを自動Fadeから独立させて単独で使用できるように変更 */
 
 #define LOGO_FADE_MAX    256
 #define LOGO_XY_MAX      500

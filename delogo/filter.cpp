@@ -194,8 +194,6 @@
 
 using std::unique_ptr;
 
-#define LOGO_AUTO_SELECT 1
-
 #define ID_BUTTON_OPTION            (40001)
 #define ID_COMBO_LOGO               (40002)
 #define ID_BUTTON_SYNTH             (40003)
@@ -215,16 +213,13 @@ typedef struct {
     HWND  cb_logo;
     HWND  bt_opt;
     HWND  bt_synth;
-#if LOGO_AUTO_SELECT
     HWND  lb_auto_select;
-#endif
 } FILTER_DIALOG;
 
 static FILTER_DIALOG dialog = { 0 };
 
 static char  logodata_file[MAX_PATH] = { 0 };   // ロゴデータファイル名(INIに保存)
 
-#if LOGO_AUTO_SELECT
 #define LOGO_AUTO_SELECT_STR "ファイル名から自動選択"
 #define LOGO_AUTO_SELECT_NONE INT_MAX
 
@@ -242,13 +237,8 @@ typedef struct LOGO_AUTO_SELECT_DATA {
 
 static LOGO_HEADER LOGO_HEADER_AUTO_SELECT = { LOGO_AUTO_SELECT_STR };
 static LOGO_AUTO_SELECT_DATA logo_select = { 0 };
-#endif
 
-#if LOGO_AUTO_SELECT
 #define LOGO_AUTO_SELECT_USED (!!logo_select.count)
-#else
-#define LOGO_AUTO_SELECT_USED 0
-#endif
 
 #define FADE_DIV_COUNT      (8)
 #define PRE_DIV_COUNT       (4)
@@ -303,12 +293,10 @@ static void on_wm_filter_init(FILTER* fp);
 static void on_wm_filter_exit(FILTER* fp);
 static void init_dialog(HWND hwnd,HINSTANCE hinst);
 static void update_cb_logo(char *name);
-#if LOGO_AUTO_SELECT
 static void on_wm_filter_file_close(FILTER* fp);
 static void logo_auto_select_apply(FILTER *fp, int num);
 static void logo_auto_select_remove(FILTER *fp);
 static int logo_auto_select(FILTER* fp, FILTER_PROC_INFO *fpip);
-#endif
 static void load_logo_param(FILTER* fp, int num);
 static void change_param(FILTER* fp);
 static void set_cb_logo(FILTER* fp);
@@ -436,7 +424,6 @@ static FILTER_DLL filter = {
     ex_data,        // 拡張領域初期値
 };
 
-#if LOGO_FADE_FAST_ANALYZE
 //--------------------------------------------------------------------
 // LogoMaskの作成
 //--------------------------------------------------------------------
@@ -591,12 +578,8 @@ void PrepareSearchChangeScene(FILTER *const fp) {
 // これまで取得したFade値の再整列
 //--------------------------------------------------------------------
 void realignFadeArray(FILTER *const fp, FILTER_PROC_INFO *const fpip, const int target_frame) {
-    //-------------------------------------------------------
-    /*
-    (2015/03/15:+h31) 編集点付近でのFade値の処理
-    前のFrameとのVideoIndexの差が1でない場合は編集点 or SourceChangeを含むので
-    参照しないようにする.(Tableのfade値=nValをセットする)
-    */
+    //(2015/03/15:+h31) 編集点付近でのFade値の処理
+    //前のFrameとのVideoIndexの差が1でない場合は編集点 or SourceChangeを含むので参照しないようにする.(Tableのfade値=nValをセットする)
     auto func_SearchChangeScene = [&](int nCenterFrame, int nVal) {
         int nCurrentVideoIndex = -1;
         bool bFoundSC = false;
@@ -667,10 +650,7 @@ void realignFadeArray(FILTER *const fp, FILTER_PROC_INFO *const fpip, const int 
 
     //-------------------------------------------------------
     // (2015/03/15:+h31) 編集点付近でのFade値の処理
-    /*
-    前のFrameとのVideoIndexの差が1でない場合は編集点orSourceChangeを含むので
-    参照しないようにする.
-    */
+    //前のFrameとのVideoIndexの差が1でない場合は編集点orSourceChangeを含むので参照しないようにする.
     func_SearchChangeScene(target_frame, -2);   // Table変換後に現在のFrameに合わせて再度参照できないTableを検出する.
 }
 
@@ -843,7 +823,7 @@ int CalcAutoFade(int *nr_value, int * pFadePreAdjusted /*= nullptr*/,
     return fade;
 }
 
-#endif  /* LOGO_FADE_FAST_ANALYZE */
+
 
 /*********************************************************************
 *   DLL Export
@@ -946,7 +926,6 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
     int logo_idx = find_logo((const char *)fp->ex_data_ptr);
     if (logo_idx < 0) return FALSE;
 
-#if LOGO_AUTO_SELECT
     //ロゴ自動選択
     if (logo_select.count) {
         if (logo_idx == 0) {
@@ -960,7 +939,6 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
             logo_auto_select_remove(fp);
         }
     }
-#endif
 
     {
         const int new_adjdata_size = (int)(sizeof(LOGO_HEADER)
@@ -1017,133 +995,16 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
         //SIMDを使用するため、アライメントの確保できる幅を使用する
         if (g_logo.mask_logo_index != logo_idx) {
             g_logo.fade_array_index = -1;
-#if defined(LOGO_FADE_FAST_ANALYZE) /* (2015/03/15:+h31) 関数化 */
             g_logo.mask_logo_index = logo_idx;
             CreateLogoMask();    // LogoMaskの作成
             bUpdateBuffer = true;
-#else   /* LOGO_FADE_FAST_ANALYZE */
-            //---------------------------------------------------------------------------------
-            // LogoMaskの作成
-            //---------------------------------------------------------------------------------
-            // Memoryの準備
-
-            int new_mask_count = logo4work->h * logo_pitch; // Maskに格納する要素数
-            if (new_mask_count > logo_mask_count) {
-                //SIMDを使用するため、_aligned_mallocを使用する
-                /*
-                    #1 評価用Mask(Original)
-                    #2 評価用Mask(Frame毎の調整後)
-                    #3 NR用Mask
-                */
-                logo_mask = (short *)_aligned_realloc(logo_mask, new_mask_count * sizeof(short) * 3, 32);
-                /*
-                    #1 処理対象FrameのLogo位置のY成分を格納する(Y成分のみで評価するため)
-                    #2 評価用の処理結果格納Buffer
-                    #3 作業用Buffer
-                    #4 調整後のMask
-                    #5～9 評価結果格納用
-                */
-                logo_fade_buffer = (short *)_aligned_realloc(logo_fade_buffer, new_mask_count * sizeof(short) * (4 + (PRE_DIV_COUNT + 1)), 32);
-                if (logo_mask != nullptr && logo_fade_buffer != nullptr) {
-                    FillMemory(logo_mask, new_mask_count * sizeof(short), 0);
-                    logo_mask_count = new_mask_count;
-                } else {
-                    if (logo_mask) {
-                        _aligned_free(logo_mask);
-                        logo_mask = nullptr;
-                    }
-                    if (logo_fade_buffer) {
-                        _aligned_free(logo_fade_buffer);
-                        logo_fade_buffer = nullptr;
-                    }
-                    logo_mask_count = 0;
-                    logo_mask_index = -1;
-                    return FALSE;   // 初期化失敗
-                }
-            }
-            logo_mask_index = num;
-            bUpdateBuffer = true;
-
-            //---------------------------------------------------------------------------------
- #ifdef __LOGO_AUTO_ERASE_SIMD__
-            memset(logo_mask, 0, sizeof(short) * logo_pitch);
-            func_logo->prewitt_filter(logo_mask, logodata[logo_mask_index]);
-            memset(logo_mask + logo_pitch * (logo4work->h - 1), 0, sizeof(short) * logo_pitch);
- #else
-            // Prewittフィルタの処理結果をlogo_maskに格納する
-            for (int y = 1; y <  logo4work->h - 1; y++) {
-                for (int x = 1; x < logo4work->w - 1; x++) {
-                    int y_sum_h, y_sum_v;
-                    y_sum_h = -GetLogoY(x - 1, y - 1);
-                    y_sum_h -= GetLogoY(x - 1, y);
-                    y_sum_h -= GetLogoY(x - 1, y + 1);
-                    y_sum_h += GetLogoY(x + 1, y - 1);
-                    y_sum_h += GetLogoY(x + 1, y);
-                    y_sum_h += GetLogoY(x + 1, y + 1);
-                    y_sum_v = -GetLogoY(x - 1, y - 1);
-                    y_sum_v -= GetLogoY(x    , y - 1);
-                    y_sum_v -= GetLogoY(x + 1, y - 1);
-                    y_sum_v += GetLogoY(x - 1, y + 1);
-                    y_sum_v += GetLogoY(x    , y + 1);
-                    y_sum_v += GetLogoY(x + 1, y + 1);
-                    logo_mask[x + y * logo_pitch] = (short)(sqrt( (double)(y_sum_h * y_sum_h + y_sum_v * y_sum_v)));
-                }
-            }
- #endif
-            // LogoMaskの有効要素数を数える.
- #ifdef __LOGO_AUTO_ERASE_SIMD__
-            logo_mask_valid_pixels = func_logo->count_valid_pixels(logo_mask, logo4work->w, logo_pitch, logo4work->h);
- #else
-            logo_mask_valid_pixels = 0;
-            for (int y = 1; y <  logo4work->h - 1; y++) {
-                for (int x = 1; x < logo4work->w - 1; x++) {
-                    logo_mask_valid_pixels += (logo_mask[x + y * logo_pitch] > 1024);
-                }
-            }
- #endif
-#endif  /* LOGO_FADE_FAST_ANALYZE */
         }
     }
 
     if (fp->track[LOGO_TRACK_NR_VALUE] > 0
         || fp->check[LOGO_CHECK_AUTO_FADE]
         || fp->check[LOGO_CHECK_AUTO_NR]) {
-#if defined(LOGO_FADE_FAST_ANALYZE) /* (2015/03/15:+h31) 関数化 */
         CreateNRMask(g_logo.mask_nr.get(), g_logo.mask.get(), fp->track[LOGO_TRACK_NR_AREA], bUpdateBuffer); // NR処理maskの生成
-#else   /* LOGO_FADE_FAST_ANALYZE */
-        if (bUpdateBuffer
-            || (mask_coef > 0 && NR_area_coef != mask_coef)
-            )
-        {
-            NR_area_coef = mask_coef;   // NR処理maskを作成したNR領域係数を保存.
-            //-------------------------------------
-            // NR処理maskの生成
-            //-------------------------------------
-            short * target = logo_mask + (logo_pitch * logo4work->h) * 2;   // 作業用bufferはmaskの後半.
-            int pos = 0;
-            for (int i = 0; i < logo4work->h; ++i) {
-                for (int j = 0; j < logo4work->w; ++j) {
-                    short * refer = logo_mask + pos - (mask_coef * logo_pitch) - mask_coef; // 参照点から(-mask_coef, -mask_coef)の位置
-                    for (int y = -mask_coef; y <= mask_coef; y++) {
-                        int referpos = 0;
-                        target[pos] = 0;
-                        for (int x = -mask_coef; x <= mask_coef; x++) {
-                            if (x + j >= 0 && x + j < logo4work->w && y + i >= 0 && y + i < logo4work->h) {
-                                if (refer[referpos] > 1024) {
-                                    target[pos] = 1025;
-                                    break;
-                                }
-                            }
-                            if (target[pos] > 1024) break;
-                            referpos ++;
-                        }
-                        refer += logo_pitch;
-                    }
-                    ++pos;
-                }
-            }
-        }
-#endif  /* LOGO_FADE_FAST_ANALYZE */
     }
 
     char newCaption[256];
@@ -1153,244 +1014,8 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
     int nr_value = fp->track[LOGO_TRACK_NR_VALUE];
     bool bNeedCalcThisFrame = false;    // 当該FrameのFade値の計算処理を行うかどうか.
     if (fp->check[LOGO_CHECK_AUTO_FADE]) {
-#if defined(LOGO_FADE_FAST_ANALYZE) /* (2015/03/15:+h31) 関数化 */
         int fade_pre_adjusted = 0;  // 調整前のFade値を取得する
         fade = CalcAutoFade(&nr_value, &fade_pre_adjusted, fp, fpip, fpip->frame, fpip->ycp_edit, bEditing);
-#else   /* LOGO_FADE_FAST_ANALYZE */
-        //-------------------------------------------------------
-        /*
-            (2015/03/15:+h31) 編集点付近でのFade値の処理
-            前のFrameとのVideoIndexの差が1でない場合は編集点 or SourceChangeを含むので
-            参照しないようにする.(Tableのfade値=nValをセットする)
-        */
-        auto func_SearchChangeScene = [&](int nCenterFrame, int nVal) {
-            int nCurrentVideoIndex = -1;
-            BOOL bFoundSC = FALSE;
-            FRAME_STATUS fs;
-            if (m_fp->exfunc->get_frame_status(fpip->editp, nCenterFrame, &fs))
-                nCurrentVideoIndex = fs.video;
-            int nPrevVideoIndex = nCurrentVideoIndex;
-            for (int i = 4; i < 7; i++) {
-                if (bFoundSC)
-                    g_logo.fade_array[i].fade = nVal;
-                else if (m_fp->exfunc->get_frame_status(fpip->editp, nCenterFrame + i - 3, &fs)) {
-                    if (fs.video - nPrevVideoIndex != 1) {
-                        g_logo.fade_array[i].fade = nVal;   // 編集点を挟んで不連続な場合
-                        bFoundSC = TRUE;
-                    }
-                } else {
-                    g_logo.fade_array[i].fade = nVal;   // 編集点を挟んで不連続な場合
-                    bFoundSC = TRUE;
-                }
-                nPrevVideoIndex = fs.video;
-            }
-
-            nPrevVideoIndex = nCurrentVideoIndex;
-            bFoundSC = FALSE;
-            for (int i = 2; i >= 0; i--) {
-                if (bFoundSC)
-                    g_logo.fade_array[i].fade = nVal;
-                else if (m_fp->exfunc->get_frame_status(fpip->editp, nCenterFrame + i - 3, &fs)) {
-                    if (fs.video - nPrevVideoIndex != -1) {
-                        g_logo.fade_array[i].fade = nVal;   // 編集点を挟んで不連続な場合
-                        bFoundSC = TRUE;
-                    }
-                } else {
-                    g_logo.fade_array[i].fade = nVal;   // 編集点を挟んで不連続な場合
-                    bFoundSC = TRUE;
-                }
-                nPrevVideoIndex = fs.video;
-            }
-        };
-
-        //-------------------------------------------------------
-        if (g_logo.fade_array_index == -1)
-            memset(g_logo.fade_array, 0xff, sizeof(g_logo.fade_array)); // Arrayを初期化
-        else {
-            // これまでに取得したFade値を再配置して再利用する.
-            int delta = fpip->frame - g_logo.fade_array_index;
-            if (delta != 0) {
-                if (abs(delta) <= 6) {
-                    func_SearchChangeScene(g_logo.fade_array_index, -1);    // (2015/03/15:+h31) Tableを再利用する前に参照できないTableのFade値=-1にする
-
-                    if (delta > 0) {
-                        for (int i = 0; i < 7 - delta; i++)
-                            g_logo.fade_array[i] = g_logo.fade_array[i + delta];
-                        for (int i = 7 - delta; i < 7; i++)
-                            g_logo.fade_array[i].fade = -1;
-                    } else {
-                        for (int i = 6; i >= -delta; i--)
-                            g_logo.fade_array[i] = g_logo.fade_array[i + delta];
-                        for (int i = -delta - 1; i >= 0; i--)
-                            g_logo.fade_array[i].fade = -1;
-                    }
-                } else
-                    memset(g_logo.fade_array, 0xff, sizeof(g_logo.fade_array)); // Arrayを初期化
-            }
-        }
-        g_logo.fade_array_index = fpip->frame;
-
-        //-------------------------------------------------------
-        // (2015/03/15:+h31) 編集点付近でのFade値の処理
-        /*
-            前のFrameとのVideoIndexの差が1でない場合は編集点orSourceChangeを含むので
-            参照しないようにする.
-        */
-        func_SearchChangeScene(fpip->frame, -2);    // Table変換後に現在のFrameに合わせて再度参照できないTableを検出する.
-
-        //-------------------------------------------------------
-        // 前後のFrameで取得されていないFade値の計算
-        bool bNeedFillFadeArray = false;
-        for (int i = 0; i < 7; i++) {
-            if (g_logo.fade_array[i].fade == -1 && i != 3) // Fade値が取得されていないFrameの場合
-            {
-                int referFrame = (i - 3) + fpip->frame; // 取得対象のFrameIndex(0～)
-                if (referFrame >= 0 && referFrame < fpip->frame_n) {
-                    fp->exfunc->set_ycp_filtering_cache_size(fp, fpip->max_w, fpip->h, 3, nullptr);
-                    PIXEL_YC * refer_pos = (PIXEL_YC *)fp->exfunc->get_ycp_filtering_cache_ex(fp, fpip->editp, referFrame, 0, 0);
-                    refer_pos += logo4work->x + logo4work->y * fpip->max_w;
-                    int buffer_pos = 0;
-                    for (int y = 0; y < logo4work->h; y++, refer_pos += fpip->max_w, buffer_pos += logo_pitch) {
-                        for (int x = 0; x < logo4work->w; x++) {
-                            logo_fade_buffer[buffer_pos + x] = refer_pos[x].y;
-                        }
-                    }
-                    int refer_nr_value = extra.nNRValue;
-                    int refer_fade = calc_auto_fade(fp,logo4work,logo_mask,logo_fade_buffer, refer_nr_value, false);
-                    g_logo.fade_array[i].fade = refer_fade;
-                    g_logo.fade_array[i].nNR = refer_nr_value;
-                } else
-                    bNeedFillFadeArray = true;  // FadeArrayが埋まっていないので調整が必要
-            }
-            // (2015/03/15:+h31) FadeArrayが埋まっていないので調整が必要
-            else if (g_logo.fade_array[i].fade == -2)
-                bNeedFillFadeArray = true;
-        }
-
-//      bNeedCalcThisFrame = (g_logo.fade_array[3].fade == -1)? true: false;
-        bNeedCalcThisFrame = (g_logo.fade_array[3].fade < 0)? true: false;      // (2015/03/15:+h31)
-        if (bEditing && extra.bDebug)
-        {
-            memset(result_list, 0, sizeof(result_list));
-            bNeedCalcThisFrame = true;  // DebugModeの場合はDebug情報を取得するために必ず再取得する.
-        }
-
-        //-------------------------------------------------------
-        // 当該FrameのFade値の計算
-        if (bNeedCalcThisFrame) {
-            // 自動Fade値計算用にbufferの準備をする: logo_fade_bufferの前半分に処理対象FrameのLogo位置のY成分を格納する.
-            PIXEL_YC * src_pos = fpip->ycp_edit;
-            src_pos += logo4work->x + logo4work->y * fpip->max_w;
-            int buffer_pos = 0;
-            for (int y = 0; y < logo4work->h; y++, src_pos += fpip->max_w, buffer_pos += logo_pitch) {
-                for (int x = 0; x < logo4work->w; x++) {
-                    logo_fade_buffer[buffer_pos + x] = src_pos[x].y;
-                }
-            }
-            fade = calc_auto_fade(fp,logo4work,logo_mask,logo_fade_buffer, nr_value, true);
-            g_logo.fade_array[3].fade = fade;
-            g_logo.fade_array[3].nNR = nr_value;
-        } else {
-            fade = g_logo.fade_array[3].fade;
-            nr_value = g_logo.fade_array[3].nNR;
-        }
-
-        int fade_pre_adjusted = fade;   // 調整前のFade値を保存.
-
-        //---------------------------------------------------------
-        // 未取得のFadeArrayの調整(先頭/末尾のFrameが含まれる場合)
-        if (bNeedFillFadeArray) {
-            for (int i = 2; i >= 0; i--) {
-//              if (g_logo.fade_array[i].fade == -1)
-                if (g_logo.fade_array[i].fade < 0)  // (2015/03/15:+h31)
-                    g_logo.fade_array[i] = g_logo.fade_array[i + 1];
-            }
-            for (int i = 4; i < 7; i++) {
-//              if (g_logo.fade_array[i].fade == -1)
-                if (g_logo.fade_array[i].fade < 0)  // (2015/03/15:+h31)
-                    g_logo.fade_array[i] = g_logo.fade_array[i - 1];
-            }
-        }
-
-        //-------------------------------------------------------
-        // 前後のFrameのFade値からFade値を調整する
-        bool bNeedAdjust = true;
-        int past_frame_fade = (g_logo.fade_array[0].fade + g_logo.fade_array[1].fade + g_logo.fade_array[2].fade) / 3;
-        int future_frame_fade = (g_logo.fade_array[4].fade + g_logo.fade_array[5].fade + g_logo.fade_array[6].fade) / 3;
-        int current_frame_fade = (g_logo.fade_array[2].fade + g_logo.fade_array[3].fade + g_logo.fade_array[4].fade) / 3;
-
-        int adjustCoef = extra.nFadeCorrection;                 // 0～10の補正係数
-        const int fade_shreshold = LOGO_FADE_MAX * 85 / 100;    // 調整を施す閾値.
-        const int fade_min_limit = LOGO_FADE_MAX / 10;          //      V
-        if (fade < fade_min_limit) {
-            if (past_frame_fade < fade_min_limit || future_frame_fade < fade_min_limit || current_frame_fade < fade_min_limit) {
-                fade = fade * (LOGO_FADE_AD_MAX - adjustCoef) / LOGO_FADE_AD_MAX;
-                bNeedAdjust = false;
-            }
-        }
-        else if (fade > fade_shreshold) {
-            if (past_frame_fade > fade_shreshold || future_frame_fade > fade_shreshold || current_frame_fade > fade_shreshold) {
-                // Fade値が前後のFamreで継続して最大値の85%以上で推移している場合の調整.
-                fade += ((LOGO_FADE_MAX - fade) * adjustCoef / LOGO_FADE_AD_MAX);
-                bNeedAdjust = false;
-            }
-        }
-        // (2015/03/15:+h31) 前後の平均との誤差が少ない場合は調整せずにそのまま判定値を採用する
-        else {
-            double rate = (double)min(abs(fade - past_frame_fade), abs(fade - future_frame_fade)) / (double)fade;
-            if (rate <= 0.03)   // 誤差が3%以下ならば調整しない
-                bNeedAdjust = false;
-        }
-
-
-        if (bNeedAdjust) // 調整が必要な場合
-        {
-            // 前後2Frameの合計5Frameの中で最大/最小のFade値を除外した平均値を求める.
-            int max_fade = -1;
-            int min_fade = 0x7fffffff;
-            int total = 0;
-            for (int i = 1; i < 6; i++) {
-                if (max_fade < g_logo.fade_array[i].fade)
-                    max_fade = g_logo.fade_array[i].fade;
-                if (min_fade > g_logo.fade_array[i].fade)
-                    min_fade = g_logo.fade_array[i].fade;
-                total += g_logo.fade_array[i].fade;
-            }
-            total -= (max_fade + min_fade);
-            int ave_fade = total / 3;
-
-            if (fade < ave_fade) {
-                /*
-                    方針としては、Fade値が調整Fade値よりも小さい場合はできるだけ調整Fade値に置き換えてより大きなFade値にする。
-                */
-                if (ave_fade >= LOGO_FADE_MAX)
-                    fade = LOGO_FADE_MAX;
-                /* 閾値以上のFade値が継続する場合はFade値を引き上げる */
-                else if (ave_fade > fade_shreshold) {
-                    fade += ((LOGO_FADE_MAX - fade) * adjustCoef / LOGO_FADE_AD_MAX);
-                }
-                else if (fade < (double)ave_fade * 0.98)
-                    fade = ave_fade;
-            } else if (fade > ave_fade) {
-                /*
-                    方針としては、Fade値が調整Fade値よりも大きい場合はできるだけそのまま採用する。
-                */
-                if (fade >= LOGO_FADE_MAX)
-                {
-                    if (ave_fade < LOGO_FADE_MAX)
-                        fade = LOGO_FADE_MAX;
-                    else if (fade > (double)ave_fade * 1.03)
-                        fade = ave_fade;
-                }
-                /* 閾値以上のFade値が継続する場合はFade値を引き上げる */
-                else if (ave_fade > fade_shreshold)
-                    fade += ((LOGO_FADE_MAX - fade) * adjustCoef / LOGO_FADE_AD_MAX);
-                else if (fade < LOGO_FADE_MAX * 0.80    // LOGO_FADE_MAXの80%以上の場合はFade値をそのまま採用する.
-                    && fade > (double)ave_fade * 1.15)  // 平均よりも15%以上大きい場合
-                    fade = ave_fade;
-            }
-        }
-#endif  /* LOGO_FADE_FAST_ANALYZE */
 
         //-------------------------------------------------------
         // 設定Dialogに表示するCaption文字列の作成
@@ -1408,8 +1033,7 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
     } else {
         fade = calc_fade(fp, fpip);
 
-#if defined(_h39_AUTONR_)   /* (2016/02/14:+h39) 自動NRを自動Fadeから独立させて単独で使用できるように変更 */
-        if (fp->check[LOGO_CHECK_AUTO_NR] && fp->check[LOGO_CHECK_DELMODE]) {
+        if (fp->check[LOGO_CHECK_AUTO_NR] && fp->check[LOGO_CHECK_DELMODE]) { //自動NRを自動Fadeから独立させて単独で使用
             create_adjusted_logo_mask(g_logo.mask_adjusted.get(), g_logo.mask_nr.get(), g_logo.mask.get(), fp, logo4work);    // Frame毎に調整したMaskの作成
             unsigned int minRresult = 0xffffffff;
             nr_value = 0;
@@ -1424,7 +1048,6 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
                 }
             }
         }
-#endif  /* _h39_AUTONR_ */
 
         // 設定Dialogに表示するCaption文字列の作成
         if (bEditing) {
@@ -1433,12 +1056,10 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
                     sprintf_s(newCaption, "透過性ロゴ[除去]: 自動=OFF, Fade=%d/256", fade);
                 else
                     sprintf_s(newCaption, "透過性ロゴ[除去]: Fade=%d/256", fade);
-#if defined(_h39_AUTONR_)   /* (2016/02/14:+h39) 自動NRを自動Fadeから独立させて単独で使用できるように変更 */
-                if (fp->check[LOGO_CHECK_AUTO_NR]) {
+                if (fp->check[LOGO_CHECK_AUTO_NR]) { //自動NRを自動Fadeから独立させて単独で使用
                     int len = strlen(newCaption);
                     sprintf_s(&(newCaption[len]), sizeof(newCaption)-1-len, ",NR=%d", nr_value);
                 }
-#endif  /* _h39_AUTONR_ */
             } else {
                 sprintf_s(newCaption, "透過性ロゴ[付加]: Fade=%d/256", fade);
             }
@@ -1490,7 +1111,6 @@ BOOL func_proc(FILTER *fp, FILTER_PROC_INFO *fpip) {
     return rc;
 }
 
-#if LOGO_AUTO_SELECT
 /*--------------------------------------------------------------------
 *   logo_auto_select_apply()
 *-------------------------------------------------------------------*/
@@ -1541,7 +1161,6 @@ int logo_auto_select(FILTER* fp, FILTER_PROC_INFO *fpip) {
     }
     return (logo_select.num_selected = LOGO_AUTO_SELECT_NONE); //見つからなかった
 }
-#endif //LOGO_AUTO_SELECT
 
 /*--------------------------------------------------------------------
 *   func_proc_eraze_logo()  ロゴ除去モード
@@ -2569,11 +2188,9 @@ BOOL func_WndProc( HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, void *
         case WM_FILTER_EXIT: // 終了
             on_wm_filter_exit(fp);
             break;
-#if LOGO_AUTO_SELECT
         case WM_FILTER_FILE_CLOSE:
             on_wm_filter_file_close(fp); //ファイルクローズ
             break;
-#endif //LOGO_AUTO_SELECT
         case WM_FILTER_UPDATE: // フィルタ更新
         case WM_FILTER_SAVE_END: // セーブ終了
             // コンボボックス表示更新
@@ -2708,7 +2325,6 @@ static void on_wm_filter_exit(FILTER* fp)
     fp->exfunc->ini_save_str(fp, LDP_KEY, logodata_file);
 }
 
-#if LOGO_AUTO_SELECT
 /*--------------------------------------------------------------------
 *   on_wm_filter_file_close() ファイルのクローズ
 *       ロゴの自動選択になっていたら、画面を元に戻す
@@ -2718,7 +2334,6 @@ static void on_wm_filter_file_close(FILTER* fp) {
     logo_select.src_filename[0] = '\0';
     logo_select.num_selected = 0;
 }
-#endif
 
 /*--------------------------------------------------------------------
 *   init_dialog()       ダイアログアイテムを作る
@@ -2746,12 +2361,10 @@ static void init_dialog(HWND hwnd, HINSTANCE hinst)
                                     240,ITEM_Y-60, 66,24, hwnd, (HMENU)ID_BUTTON_SYNTH, hinst, nullptr);
     SendMessage(dialog.bt_synth, WM_SETFONT, (WPARAM)dialog.font, 0);
 
-#if LOGO_AUTO_SELECT
     //自動選択ロゴ表示
     dialog.lb_auto_select = CreateWindow("static", "", SS_SIMPLE | WS_CHILD | WS_VISIBLE,
                                     20,ITEM_Y+23, 288,24, hwnd, (HMENU)ID_LABEL_LOGO_AUTO_SELECT, hinst, nullptr);
     SendMessage(dialog.lb_auto_select, WM_SETFONT, (WPARAM)dialog.font, 0);
-#endif
     auto window = GetSize(hwnd, nullptr, nullptr);
     auto border = GetBorderSize(hwnd, window);
     SetWindowPos(hwnd, 0, 0, 0, window.w, ITEM_Y + 23 + window.h - (border.rect.bottom - border.rect.top), SWP_NOMOVE | SWP_NOZORDER);
@@ -3095,12 +2708,10 @@ static void read_logo_pack(char *fname, FILTER *fp)
     const size_t logo_header_size = (logo_header_ver == 2) ? sizeof(LOGO_HEADER) : sizeof(LOGO_HEADER_OLD);
     logodata_n = LOGO_AUTO_SELECT_USED; // 書き込みデータカウンタ
     logodata = nullptr;
-#if LOGO_AUTO_SELECT
     if (logo_select.count) {
         logodata  = (LOGO_HEADER**)malloc(sizeof(LOGO_HEADER *) * 1);
         logodata[0] = &LOGO_HEADER_AUTO_SELECT;
     }
-#endif
     int logonum = SWAP_ENDIAN(logo_file_header.logonum.l);
 
     for (int i = 0; i < logonum; i++) {
@@ -3262,11 +2873,9 @@ static BOOL on_avisynth_button(FILTER* fp, void *editp)
 {
     char str[STRDLG_MAXSTR] = { 0 };
     const char *logo_ptr = (char *)fp->ex_data_ptr;
-#if LOGO_AUTO_SELECT
     if (0 == strcmp(logo_ptr, LOGO_AUTO_SELECT_STR)) {
         logo_ptr = (logo_select.num_selected == LOGO_AUTO_SELECT_NONE) ? "なし" : logodata[logo_select.num_selected]->name;
     }
-#endif
     // スクリプト生成
     wsprintf(str,"%sLOGO(logofile=\"%s\",\r\n"
                  "\\           logoname=\"%s\"",
@@ -3373,7 +2982,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
             filter.check_name[i] = strings[i+TRACK_N+1];
         }
 
-#if LOGO_AUTO_SELECT
         //自動選択キー
         logo_select.count = 0;
         for (; ; logo_select.count++) {
@@ -3395,7 +3003,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
                 strcpy_s(logo_select.keys[i].logoname, ptr+1);
             }
         }
-#endif
         break;
 
     case DLL_PROCESS_DETACH: // 終了時
@@ -3404,7 +3011,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
             free(strings[i]);
             strings[i] = nullptr;
         }
-#if LOGO_AUTO_SELECT
         if (logo_select.keys) {
             for (int i = 0; i < logo_select.count; i++) {
                 if (logo_select.keys[i].key)
@@ -3413,7 +3019,6 @@ BOOL WINAPI DllMain(HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
             free(logo_select.keys);
             memset(&logo_select, 0, sizeof(logo_select));
         }
-#endif
         break;
 
     case DLL_THREAD_ATTACH:
