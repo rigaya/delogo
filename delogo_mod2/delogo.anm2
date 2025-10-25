@@ -1,0 +1,277 @@
+--label:フィルタ
+--track0:位置 X,-4000,4000,0
+--track1:位置 Y,-4000,4000,0
+--track2:深度,0,1000,1000
+--track3:FadeIn(秒),0,300,0
+--track4:FadeOut(秒),0,300,0
+--track5:開始(秒),0,300,0
+--track6:終了(秒),0,300,0
+--check0:ロゴ付与,0
+--file@logo_path:ロゴファイル名(拡張子lgd/lgd2)
+
+-- コンピュートシェーダ本体（逆アルファで復元）
+--[[computeshader@delogo_inverse:
+RWTexture2D<float4> buffer : register(u0);
+Texture2D<float4> logoYCC : register(t0);
+Texture2D<float4> logoDP  : register(t1);
+
+cbuffer constant0 : register(b0) {
+    float2 offset;   // ロゴ左上座標（ピクセル）
+    float2 logoSize; // ロゴの幅・高さ
+    float  strength; // 効果強度(0..1)
+    float  pad0;
+};
+[numthreads(1, 1, 1)]
+void delogo_inverse(uint2 tid : SV_DispatchThreadID) {
+    // 比較は float で行う
+    float2 fpos = float2(tid.xy);
+    float2 rel = fpos - offset;
+    float2 endp = offset + logoSize;
+    // ロゴ範囲外は無視
+    if (fpos.x < offset.x || fpos.y < offset.y || fpos.x >= endp.x || fpos.y >= endp.y) {
+        return;
+    }
+    float4 bg = buffer[tid];
+    float2 tex = rel;
+    float2 f = frac(tex);
+    int2 base = int2(floor(tex));
+    int2 size = int2(logoSize);
+    float eps = 1e-6;
+    float4 ycc;
+    float4 dp;
+    // 補間の早期スキップ（最近傍または片軸補間）
+    if (abs(f.x) < eps && abs(f.y) < eps) {
+        int2 p = int2(min(max(base, int2(0, 0)), size - int2(1, 1)));
+        ycc = logoYCC[p];
+        dp  = logoDP[p];
+    } else {
+        // 線形補間
+        int2 p00 = int2(min(max(base,              int2(0, 0)), size - int2(1, 1)));
+        int2 p10 = int2(min(max(base + int2(1, 0), int2(0, 0)), size - int2(1, 1)));
+        int2 p01 = int2(min(max(base + int2(0, 1), int2(0, 0)), size - int2(1, 1)));
+        int2 p11 = int2(min(max(base + int2(1, 1), int2(0, 0)), size - int2(1, 1)));
+        float4 y00 = logoYCC[p00];
+        float4 y10 = logoYCC[p10];
+        float4 y01 = logoYCC[p01];
+        float4 y11 = logoYCC[p11];
+        float4 d00 = logoDP[p00];
+        float4 d10 = logoDP[p10];
+        float4 d01 = logoDP[p01];
+        float4 d11 = logoDP[p11];
+        ycc = lerp(lerp(y00, y10, f.x), lerp(y01, y11, f.x), f.y);
+        dp  = lerp(lerp(d00, d10, f.x), lerp(d01, d11, f.x), f.y);
+    }
+    // ロゴの Y,Cb,Cr（Cb/Cr は 0..1 から -0.5..0.5 に戻す）
+    float Yl  = ycc.r;
+    float Cbl = ycc.g - 0.5;
+    float Crl = ycc.b - 0.5;
+    // 背景RGB→YCbCr（scanpix.cpp の係数に合わせる）
+    float3 Co = bg.rgb;
+    float Yb =  0.2989 * Co.r + 0.5866 * Co.g + 0.1145 * Co.b;
+    float Cbb = -0.1687 * Co.r - 0.3312 * Co.g + 0.5000 * Co.b; // -0.5..0.5 近傍
+    float Crb =  0.5000 * Co.r - 0.4183 * Co.g - 0.0816 * Co.b; // -0.5..0.5 近傍
+    // 各成分のα
+    float aY  = saturate(dp.r * strength);
+    float aCb = saturate(dp.g * strength);
+    float aCr = saturate(dp.b * strength);
+    aY  = min(aY,  0.9995);
+    aCb = min(aCb, 0.9995);
+    aCr = min(aCr, 0.9995);
+    // 逆算（成分別）
+    float Ybase  = (Yb  - aY  * Yl ) / (1.0 - aY );
+    float Cbbase = (Cbb - aCb * Cbl) / (1.0 - aCb);
+    float Crbase = (Crb - aCr * Crl) / (1.0 - aCr);
+    // YUV→RGB へ戻す
+    float3 Cbase;
+    Cbase.r = Ybase + 1.402    * Crbase;
+    Cbase.g = Ybase - 0.344136 * Cbbase - 0.714136 * Crbase;
+    Cbase.b = Ybase + 1.772    * Cbbase;
+    bg.rgb = saturate(Cbase);
+    buffer[tid] = bg;
+}
+]]
+
+-- コンピュートシェーダ本体（ロゴ付与）
+--[[computeshader@delogo_add:
+RWTexture2D<float4> buffer : register(u0);
+Texture2D<float4> logoYCC : register(t0);
+Texture2D<float4> logoDP  : register(t1);
+
+cbuffer constant0 : register(b0) {
+    float2 offset;   // ロゴ左上座標（ピクセル）
+    float2 logoSize; // ロゴの幅・高さ
+    float  strength; // 効果強度(0..1)
+    float  pad0;
+};
+[numthreads(1, 1, 1)]
+void delogo_add(uint2 tid : SV_DispatchThreadID) {
+    float2 fpos = float2(tid.xy);
+    float2 rel = fpos - offset;
+    float2 endp = offset + logoSize;
+    if (fpos.x < offset.x || fpos.y < offset.y || fpos.x >= endp.x || fpos.y >= endp.y) {
+        return;
+    }
+    float4 bg = buffer[tid];
+    float2 tex = rel;
+    float2 f = frac(tex);
+    int2 base = int2(floor(tex));
+    int2 size = int2(logoSize);
+    float eps = 1e-6;
+    float4 ycc;
+    float4 dp;
+    if (abs(f.x) < eps && abs(f.y) < eps) {
+        int2 p = int2(min(max(base, int2(0, 0)), size - int2(1, 1)));
+        ycc = logoYCC[p];
+        dp  = logoDP[p];
+    } else {
+        int2 p00 = int2(min(max(base,              int2(0, 0)), size - int2(1, 1)));
+        int2 p10 = int2(min(max(base + int2(1, 0), int2(0, 0)), size - int2(1, 1)));
+        int2 p01 = int2(min(max(base + int2(0, 1), int2(0, 0)), size - int2(1, 1)));
+        int2 p11 = int2(min(max(base + int2(1, 1), int2(0, 0)), size - int2(1, 1)));
+        float4 y00 = logoYCC[p00];
+        float4 y10 = logoYCC[p10];
+        float4 y01 = logoYCC[p01];
+        float4 y11 = logoYCC[p11];
+        float4 d00 = logoDP[p00];
+        float4 d10 = logoDP[p10];
+        float4 d01 = logoDP[p01];
+        float4 d11 = logoDP[p11];
+        ycc = lerp(lerp(y00, y10, f.x), lerp(y01, y11, f.x), f.y);
+        dp  = lerp(lerp(d00, d10, f.x), lerp(d01, d11, f.x), f.y);
+    }
+    // ロゴの Y,Cb,Cr（Cb/Cr は 0..1 から -0.5..0.5 に戻す）
+    float Yl  = ycc.r;
+    float Cbl = ycc.g - 0.5;
+    float Crl = ycc.b - 0.5;
+    // 背景RGB→YCbCr（scanpix.cpp の係数に合わせる）
+    float3 Co = bg.rgb;
+    float Yb =  0.2989 * Co.r + 0.5866 * Co.g + 0.1145 * Co.b;
+    float Cbb = -0.1687 * Co.r - 0.3312 * Co.g + 0.5000 * Co.b;
+    float Crb =  0.5000 * Co.r - 0.4183 * Co.g - 0.0816 * Co.b;
+    // 各成分のα
+    float aY  = saturate(dp.r * strength);
+    float aCb = saturate(dp.g * strength);
+    float aCr = saturate(dp.b * strength);
+    // 前向き合成（成分別）
+    float Yout  = aY  * Yl  + (1.0 - aY)  * Yb;
+    float Cbout = aCb * Cbl + (1.0 - aCb) * Cbb;
+    float Crout = aCr * Crl + (1.0 - aCr) * Crb;
+    // YUV→RGB へ戻す
+    float3 Cout;
+    Cout.r = Yout + 1.402    * Crout;
+    Cout.g = Yout - 0.344136 * Cbout - 0.714136 * Crout;
+    Cout.b = Yout + 1.772    * Cbout;
+    bg.rgb = saturate(Cout);
+    buffer[tid] = bg;
+}
+]]
+
+-- 実行本体
+-- ヘルパー関数
+local function clamp(v, a, b)
+    if v < a then return a end
+    if v > b then return b end
+    return v
+end
+
+local function tolower(s)
+    return string.lower(s or "")
+end
+
+local function replace_ext(path, newext)
+    -- 拡張子を newext に置換（. を含まない newext でも可）
+    if not path or path == "" then return path end
+    local ext = newext
+    if string.sub(newext,1,1) ~= "." then ext = "."..newext end
+    local p = string.gsub(path, "(%.[^%.\\/:]+)$", ext)
+    if p == path then
+        -- 拡張子が無い場合は付与
+        p = path .. ext
+    end
+    return p
+end
+
+local function read_logo_to_cache(logo_file)
+    local lib = obj.module("delogo")
+    if not lib then return false end
+
+    local ycc = lib.get_logo_ycc(logo_file)
+    local dp  = lib.get_logo_dp(logo_file)
+    if not ycc or not dp then return false end
+    local w   = lib.get_w()
+    local h   = lib.get_h()
+    if (not w) or (not h) or w <= 0 or h <= 0 then return false end
+    obj.putpixeldata("cache:__logoYCC", ycc, w, h, "rgba")
+    obj.putpixeldata("cache:__logoDP",  dp,  w, h, "rgba")
+    return true
+end
+
+-- 入力
+local logo_file = logo_path or ""
+local offsetX = obj.track0
+local offsetY = obj.track1
+local depthScale = clamp((obj.track2) / 1000.0, 0.0, 1.0)
+local addlogo = obj.check0
+
+-- ロゴ未指定は終了
+if logo_file == "" then return end
+
+-- ロゴ画像を用意
+local logoPrepared = false
+do
+    local low = tolower(logo_file)
+    if string.sub(low, -4) == ".lgd" or string.sub(low, -5) == ".lgd2" then
+        logoPrepared = read_logo_to_cache(logo_file)
+    end
+end
+if not logoPrepared then return end
+
+-- ロゴサイズ取得
+local lib = obj.module("delogo")
+local logoW = lib.get_w()
+local logoH = lib.get_h()
+local logoX = lib.get_x()
+local logoY = lib.get_y()
+if not logoW or logoW <= 0 or not logoH or logoH <= 0 then return end
+
+-- フェード係数計算
+local fadeIn = obj.track3
+local fadeOut = obj.track4
+local startOff = obj.track5
+local endOff = obj.track6
+local t = obj.time
+local T = obj.totaltime
+
+local fi = 1.0
+if t < startOff then
+    fi = 0.0
+elseif fadeIn > 0 and t < startOff + fadeIn then
+    fi = clamp((t - startOff) / fadeIn, 0.0, 1.0)
+else
+    fi = 1.0
+end
+
+local fo = 1.0
+if t > T - endOff then
+    fo = 0.0
+elseif fadeOut > 0 and t > T - endOff - fadeOut then
+    fo = clamp((T - endOff - t) / fadeOut, 0.0, 1.0)
+else
+    fo = 1.0
+end
+
+local fade = math.min(fi, fo)
+
+-- 有効強度（0..1）
+local strength = clamp(depthScale * fade, 0.0, 1.0)
+if strength <= 0 then return end
+
+-- コンピュートシェーダを実行
+if (addlogo) then
+    -- debug_print(string.format("delogo_add params: offset=(%d,%d) size=(%d,%d) strength=%.4f", logoX+offsetX, logoY+offsetY, logoW, logoH, strength))
+    obj.computeshader("delogo_add", "object", {"cache:__logoYCC","cache:__logoDP"}, {logoX+offsetX, logoY+offsetY, logoW, logoH, strength}, obj.w, obj.h)
+else
+    -- debug_print(string.format("delogo_inverse params: offset=(%d,%d) size=(%d,%d) strength=%.4f", logoX+offsetX, logoY+offsetY, logoW, logoH, strength))
+    obj.computeshader("delogo_inverse", "object", {"cache:__logoYCC","cache:__logoDP"}, {logoX+offsetX, logoY+offsetY, logoW, logoH, strength}, obj.w, obj.h)
+end
+

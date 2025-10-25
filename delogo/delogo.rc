@@ -129,9 +129,9 @@ FONT 9, "ＭＳ Ｐゴシック"
 //////////////////////////////////////////////////////////////////////
 //  VERSION INFO
 //
-VS_VIRSION_INFO VERSIONINFO
- FILEVERSION    0,1,2,1
- PRODUCTVERSION 0,1,2
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION    0,1,3,18
+ PRODUCTVERSION 0,1,3,18
  FILEFLAGSMASK  0x3FL
  FILEFLAGS      0x0L
  FILEOS         VOS__WINDOWS32
@@ -144,12 +144,12 @@ VS_VIRSION_INFO VERSIONINFO
 		{
 //			VALUE "Comments",         "ロゴサンプル提供者募集中\0"
             VALUE "FileDescription",  "透過性ロゴ フィルタ Plugin for AviUtl 0.98以降\0"
-            VALUE "FileVersion",      "0.1.2.1\0"
+            VALUE "FileVersion",      "0.1.3.18\0"
             VALUE "InternalName",     "deLogo\0"
             VALUE "LegalCopyright",   "(C) MakKi\0"
             VALUE "OriginalFilename", "delogo.aup\0"
             VALUE "ProductName",      "透過性ロゴ フィルタ\0"
-            VALUE "ProductVersion",   "0.12a\0"
+            VALUE "ProductVersion",   "0.13\0"
 		}
 	}
     BLOCK "VarFileInfo"

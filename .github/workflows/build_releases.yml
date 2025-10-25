@@ -1,0 +1,126 @@
+name: Build Windows Releases
+
+on:
+  push:
+    branches:
+      - master
+      - actions
+    tags:
+      - '*'
+
+jobs:
+  get_version_name:
+    name: Get version name
+    runs-on: ubuntu-latest
+    outputs:
+      rev_count: ${{ steps.rev.outputs.REVCOUNT }}
+      version_name: ${{ steps.rev.outputs.VERSION_NAME }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+    - name: Set version name
+      id: rev
+      run: |
+        cd ${{ github.workspace }}
+        REVCOUNT=`git rev-list --count HEAD`
+        echo "rev_count=${REVCOUNT}" >> $GITHUB_OUTPUT
+        if [[ "${{ github.ref }}" =~ "refs/tags/" ]]; then
+          VERSION=$(echo ${{ github.ref }} | sed -e "s#refs/tags/##g")
+        else
+          VERSION=r${REVCOUNT}
+        fi
+        echo "version_name=${VERSION}" >> $GITHUB_OUTPUT
+
+  build:
+    name: Upload Release Asset
+    runs-on: windows-2022
+    needs: get_version_name
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86
+            platform: Win32
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: ${{ matrix.arch }}
+
+      - name: MSBuild
+        run: |
+          msbuild delogo.sln /t:build /p:configuration=Release /p:Platform=${{ matrix.platform }} -maxcpucount
+
+      - name: Create Archieve
+        id: archieve
+        run: |
+          mkdir release
+          copy ${{ matrix.platform }}\Release\delogo.auf release
+          copy delogo_readme.txt release
+          7z a -mx9 aviutl_delogo_${{ needs.get_version_name.outputs.version_name }}.zip .\release\*
+
+      - name: Calc hash
+        id: calc_hash
+        run: |
+          7z h -scrc* aviutl_delogo_${{ needs.get_version_name.outputs.version_name }}.zip
+
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: aviutl_delogo_${{ needs.get_version_name.outputs.version_name }}.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aviutl_delogo_${{ needs.get_version_name.outputs.version_name }}
+          path: aviutl_delogo_${{ needs.get_version_name.outputs.version_name }}.zip
+
+  anm2_release:
+    name: Upload anm2 Release Asset
+    runs-on: windows-2022
+    needs: get_version_name
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Add msbuild to PATH (x64)
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x64
+
+      - name: MSBuild x64 Release (delogo_mod2)
+        run: |
+          msbuild delogo.sln /t:build /p:configuration=Release /p:Platform=x64 -maxcpucount
+
+      - name: Create anm2 zip only
+        run: |
+          mkdir release
+          copy delogo_mod2\delogo.anm2 release
+          copy x64\delogo_mod2\Release\delogo.mod2 release
+          7z a -mx9 aviutl2_delogo_anm2_${{ needs.get_version_name.outputs.version_name }}.zip .\release\*
+
+      - name: Upload Release Asset (anm2)
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          files: aviutl2_delogo_anm2_${{ needs.get_version_name.outputs.version_name }}.zip
+
+      - name: Upload artifact (anm2)
+        uses: actions/upload-artifact@v4
+        with:
+          name: aviutl2_delogo_anm2_${{ needs.get_version_name.outputs.version_name }}
+          path: aviutl2_delogo_anm2_${{ needs.get_version_name.outputs.version_name }}.zip

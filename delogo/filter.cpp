@@ -362,7 +362,7 @@ enum {
 #define check_N (LOGO_CHECK_COUNT)
 
 char filter_name[] = LOGO_FILTER_NAME;
-static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r17 by rigaya";
+static char filter_info[] = LOGO_FILTER_NAME" ver 0.13+r18 by rigaya";
 
 static TCHAR *track_name[track_N] = {   "位置 X", "位置 Y",
                                           "深度", "Y", "Cb", "Cr",

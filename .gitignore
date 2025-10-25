@@ -141,6 +141,9 @@ GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
 
+# VSCode
+/.vscode/settings.json
+
 # =========================
 # Windows detritus
 # =========================
