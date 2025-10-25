@@ -62,8 +62,7 @@ jobs:
         id: archieve
         run: |
           mkdir release
-          copy ${{ matrix.platform }}\Release\delogo.auf release
-          copy delogo_readme.txt release
+          copy ${{ matrix.platform }}\delogo\Release\delogo.auf release
           7z a -mx9 aviutl_delogo_${{ needs.get_version_name.outputs.version_name }}.zip .\release\*
 
       - name: Calc hash
