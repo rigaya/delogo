@@ -1,5 +1,5 @@
-//////////////////////////////////////////////////////////////////////
-// 	ÉçÉSâêÕÉvÉâÉOÉCÉì ÉäÉ\Å[ÉX			logoscan.rc
+Ôªø//////////////////////////////////////////////////////////////////////
+// 	„É≠„Ç¥Ëß£Êûê„Éó„É©„Ç∞„Ç§„É≥ „É™„ÇΩ„Éº„Çπ			logoscan.rc
 //	Resource Script
 //////////////////////////////////////////////////////////////////////
 
@@ -8,22 +8,22 @@
 #include "resource.h"
 
 //////////////////////////////////////////////////////////////////////
-// âêÕåãâ É_ÉCÉAÉçÉO
+// Ëß£ÊûêÁµêÊûú„ÉÄ„Ç§„Ç¢„É≠„Ç∞
 //
 
 RESULT_DLG DIALOG  10,10, 158,121
 STYLE    DS_MODALFRAME | WS_VISIBLE | WS_POPUP | WS_CAPTION | WS_OVERLAPPEDWINDOW
-CAPTION  "ÉçÉSâêÕåãâ "
-FONT     9, "ÇlÇr ÇoÉSÉVÉbÉN"
+CAPTION  "„É≠„Ç¥Ëß£ÊûêÁµêÊûú"
+FONT     9, "Ôº≠Ôº≥ Ôº∞„Ç¥„Ç∑„ÉÉ„ÇØ"
 {
-	LTEXT     "ÉçÉSñº", IDC_TEXT, 8,10,20,9
+	LTEXT     "„É≠„Ç¥Âêç", IDC_TEXT, 8,10,20,9
 	EDITTEXT  IDC_EDIT, 34, 8,115,12, ES_LEFT | WS_TABSTOP | ES_AUTOHSCROLL
 
-	DEFPUSHBUTTON  "ëóêM",   IDC_SEND,  115,30,35,14, BS_CENTER|BS_VCENTER
-	PUSHBUTTON     "ï€ë∂",   IDC_SAVE,  115,50,35,14, BS_CENTER|BS_VCENTER
-	PUSHBUTTON     "ï¬Ç∂ÇÈ", IDC_CLOSE, 115,70,35,14, BS_CENTER|BS_VCENTER
+	DEFPUSHBUTTON  "ÈÄÅ‰ø°",   IDC_SEND,  115,30,35,14, BS_CENTER|BS_VCENTER
+	PUSHBUTTON     "‰øùÂ≠ò",   IDC_SAVE,  115,50,35,14, BS_CENTER|BS_VCENTER
+	PUSHBUTTON     "Èñâ„Åò„Çã", IDC_CLOSE, 115,70,35,14, BS_CENTER|BS_VCENTER
 
-	GROUPBOX    "îwåiêF", IDC_GROUP, 8,90,142,25,WS_VISIBLE
+	GROUPBOX    "ËÉåÊôØËâ≤", IDC_GROUP, 8,90,142,25,WS_VISIBLE
 
 	LTEXT    "R", IDC_TEXT_R,  16,101,8,8
 	EDITTEXT      IDC_RED,   24, 99,30,12,  ES_RIGHT|ES_AUTOHSCROLL|ES_NUMBER|WS_TABSTOP
@@ -43,33 +43,33 @@ FONT     9, "ÇlÇr ÇoÉSÉVÉbÉN"
 	         UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_SETBUDDYINT | UDS_ARROWKEYS,
 			 0,0,0,0
 
-//	PUSHBUTTON    "çï" , IDC_BLACK,  15,99,20,14, BS_CENTER|BS_VCENTER|BS_AUTORADIOBUTTON
-//	PUSHBUTTON    "îí" , IDC_WHITE,  40,99,20,14, BS_CENTER|BS_VCENTER|BS_AUTORADIOBUTTON
-//	PUSHBUTTON    "ê‘" , IDC_RED,    65,99,20,14, BS_CENTER|BS_VCENTER|BS_AUTORADIOBUTTON
-//	PUSHBUTTON    "óŒ" , IDC_GREEN,  90,99,20,14, BS_CENTER|BS_VCENTER|BS_AUTORADIOBUTTON
-//	PUSHBUTTON    "ê¬" , IDC_BLUE,  115,99,20,14, BS_CENTER|BS_VCENTER|BS_AUTORADIOBUTTON
+//	PUSHBUTTON    "Èªí" , IDC_BLACK,  15,99,20,14, BS_CENTER|BS_VCENTER|BS_AUTORADIOBUTTON
+//	PUSHBUTTON    "ÁôΩ" , IDC_WHITE,  40,99,20,14, BS_CENTER|BS_VCENTER|BS_AUTORADIOBUTTON
+//	PUSHBUTTON    "Ëµ§" , IDC_RED,    65,99,20,14, BS_CENTER|BS_VCENTER|BS_AUTORADIOBUTTON
+//	PUSHBUTTON    "Á∑ë" , IDC_GREEN,  90,99,20,14, BS_CENTER|BS_VCENTER|BS_AUTORADIOBUTTON
+//	PUSHBUTTON    "Èùí" , IDC_BLUE,  115,99,20,14, BS_CENTER|BS_VCENTER|BS_AUTORADIOBUTTON
 
 	GROUPBOX    "",       IDC_PANEL, 8,25,100,60,WS_VISIBLE
 
 }
 
 //////////////////////////////////////////////////////////////////////
-// åoâﬂï\é¶ÅEíÜífÉ_ÉCÉAÉçÉO
+// ÁµåÈÅéË°®Á§∫„Éª‰∏≠Êñ≠„ÉÄ„Ç§„Ç¢„É≠„Ç∞
 //
 ABORT_DLG DIALOG  20,20, 150,83
 STYLE    WS_VISIBLE | WS_POPUP | WS_CAPTION | WS_BORDER
-CAPTION  "ÉçÉSâêÕíÜ..."
-FONT     9, "ÇlÇr ÇoÉSÉVÉbÉN"
+CAPTION  "„É≠„Ç¥Ëß£Êûê‰∏≠..."
+FONT     9, "Ôº≠Ôº≥ Ôº∞„Ç¥„Ç∑„ÉÉ„ÇØ"
 {
-	DEFPUSHBUTTON "íÜíf", IDC_ABORT, 50,63,50,14, BS_CENTER|BS_VCENTER
+	DEFPUSHBUTTON "‰∏≠Êñ≠", IDC_ABORT, 50,63,50,14, BS_CENTER|BS_VCENTER
 
-	LTEXT "ÉtÉåÅ[ÉÄÇÉXÉLÉÉÉìíÜ...", IDC_STATUS, 10,7, 120,10
+	LTEXT "„Éï„É¨„Éº„É†„Çí„Çπ„Ç≠„É£„É≥‰∏≠...", IDC_STATUS, 10,7, 120,10
 	CONTROL "Progress1",IDC_PROGRESS,"msctls_progress32",WS_BORDER,8,20,133,12
 
 	RTEXT "0",              IDC_EXAMF,    90,35, 20,10
 	CTEXT "/",              IDC_STATIC,  115,35,  4,10
 	RTEXT "0",              IDC_ALLF,    119,35, 20,10
-	RTEXT "óLå¯ÉTÉìÉvÉã :", IDC_STATIC,   70,48, 45,10
+	RTEXT "ÊúâÂäπ„Çµ„É≥„Éó„É´ :", IDC_STATIC,   70,48, 45,10
 	RTEXT "0",              IDC_USEABLE, 119,48, 20,10
 }
 
@@ -89,12 +89,12 @@ VS_VIRSION_INFO VERSIONINFO
 	{
         BLOCK "041103A4"
 		{
-            VALUE "FileDescription",  "ÉçÉSâêÕ Plugin for AviUtl 0.98d\0"
+            VALUE "FileDescription",  "„É≠„Ç¥Ëß£Êûê Plugin for AviUtl 0.98d\0"
             VALUE "FileVersion",      "0.07\0"
             VALUE "InternalName",     "LogoScan\0"
             VALUE "LegalCopyright",   "(C) MakKi\0"
             VALUE "OriginalFilename", "logoscan.aup\0"
-            VALUE "ProductName",      "ÉçÉSâêÕ ÉvÉâÉOÉCÉì\0"
+            VALUE "ProductName",      "„É≠„Ç¥Ëß£Êûê „Éó„É©„Ç∞„Ç§„É≥\0"
             VALUE "ProductVersion",   "0.07\0"
 		}
 	}

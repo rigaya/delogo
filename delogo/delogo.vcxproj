@@ -106,6 +106,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>delogo.def</ModuleDefinitionFile>
     </Link>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -122,6 +125,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ModuleDefinitionFile>delogo.def</ModuleDefinitionFile>
     </Link>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -151,6 +157,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>delogo.def</ModuleDefinitionFile>
     </Link>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -180,6 +189,9 @@
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>delogo.def</ModuleDefinitionFile>
     </Link>
+    <ResourceCompile>
+      <AdditionalOptions>/c 65001 %(AdditionalOptions)</AdditionalOptions>
+    </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ResourceCompile Include="delogo.rc" />
