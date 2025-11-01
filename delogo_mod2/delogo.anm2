@@ -1,7 +1,7 @@
 --label:加工
 --track0:位置 X,-4000,4000,0
 --track1:位置 Y,-4000,4000,0
---track2:深度,0,1000,1000
+--track2:深度,0,2000,1000
 --track3:FadeIn(秒),0,300,0
 --track4:FadeOut(秒),0,300,0
 --track5:開始(秒),0,300,0
@@ -210,7 +210,7 @@ end
 local logo_file = logo_path or ""
 local offsetX = obj.track0
 local offsetY = obj.track1
-local depthScale = clamp((obj.track2) / 1000.0, 0.0, 1.0)
+local depthScale = clamp((obj.track2) / 1000.0, 0.0, 2.0)
 local addlogo = obj.check0
 
 -- ロゴ未指定は終了
@@ -263,7 +263,7 @@ end
 local fade = math.min(fi, fo)
 
 -- 有効強度（0..1）
-local strength = clamp(depthScale * fade, 0.0, 1.0)
+local strength = clamp(depthScale * fade, 0.0, 2.0)
 if strength <= 0 then return end
 
 -- コンピュートシェーダを実行
